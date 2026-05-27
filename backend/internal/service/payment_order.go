@@ -433,7 +433,11 @@ func (s *PaymentService) invokeProvider(ctx context.Context, order *dbent.Paymen
 			}
 		}
 	}
-	providerReturnURL, err := buildPaymentReturnURL(canonicalReturnURL, order.ID, outTradeNo, resumeToken)
+	providerResumeToken := resumeToken
+	if sel != nil && sel.ProviderKey == payment.TypeEasyPay && strings.EqualFold(strings.TrimSpace(sel.Config["omitReturnResumeToken"]), "true") {
+		providerResumeToken = ""
+	}
+	providerReturnURL, err := buildPaymentReturnURL(canonicalReturnURL, order.ID, outTradeNo, providerResumeToken)
 	if err != nil {
 		return nil, err
 	}
