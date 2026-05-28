@@ -6,17 +6,129 @@ export default {
     docs: '文档',
     switchToLight: '切换到浅色模式',
     switchToDark: '切换到深色模式',
+    home: '首页',
     dashboard: '控制台',
     login: '登录',
     getStarted: '立即开始',
     goToDashboard: '进入控制台',
+    navigationLabel: '首页导航',
+    brandTagline: 'API 网关',
+    defaultSiteName: '121Api 中转站',
+    heroKicker: 'Subscription Native API Relay',
+    viewCapabilities: '查看能力',
+    metricsAria: '平台亮点',
     // 新增：面向用户的价值主张
     heroSubtitle: '一个密钥，畅用多个 AI 模型',
-    heroDescription: '无需管理多个订阅账号，一站式接入 Claude、GPT、Gemini 等主流 AI 服务',
+    heroDescription: '把 Claude、GPT、Gemini、Antigravity 等订阅能力沉淀为统一 API。账号池调度、会话保持、按量计费和可观测数据在同一个入口完成。',
     tags: {
       subscriptionToApi: '订阅转 API',
       stickySession: '会话保持',
       realtimeBilling: '按量计费'
+    },
+    metrics: {
+      compatibility: {
+        label: '协议兼容',
+        value: 'OpenAI / Claude / Gemini'
+      },
+      routing: {
+        label: '调度策略',
+        value: '账号池 + 会话保持'
+      },
+      billing: {
+        label: '费用透明',
+        value: '按量记录 + 余额控制'
+      }
+    },
+    cockpit: {
+      title: 'live routing console',
+      trafficFlow: 'Traffic Flow',
+      healthy: 'healthy',
+      terminalRequest: 'curl https://121api.com/v1/chat/completions',
+      terminalResult: 'routed by sticky session · cost recorded'
+    },
+    routeRows: {
+      claudePool: 'Claude pool',
+      gptRoute: 'GPT route',
+      geminiLane: 'Gemini lane',
+      ready: 'ready',
+      sync: 'sync'
+    },
+    showcase: {
+      capabilityKicker: 'Gateway Capability',
+      capabilityTitle: '把多模型能力收进一个稳定入口',
+      capabilityDescription: '用更轻的视觉层次展示核心能力：模型聚合、统一接口、计费透明和链路保护都保留高级动效，但页面不会显得复杂。',
+      flowKicker: 'Unified API Flow',
+      flowTitle: '从订阅账号到 API Key 的稳定通路',
+      flowDescription: '把账号、分组、价格、风控和监控拆到后台管理，把用户侧调用体验收敛成一个清晰入口。',
+      ecosystemKicker: 'Trusted Ecosystem',
+      ecosystemTitle: '模型、工具和开发工作流都能接进来',
+      ecosystemDescription: '这里先用静态生态内容展示方向，后续可以改成管理端配置，按你的业务继续增减。',
+      ecosystemAria: '支持的 AI 平台和工具',
+      trustKicker: 'Reliable Service',
+      trustTitle: '稳定接入多模型，把调用体验交给一个入口',
+      trustDescription: '121Api 为团队和个人开发者提供统一、清晰、可持续的 API 服务。你只需要管理自己的 Key、余额和调用记录，模型切换、资源调度和异常保护都在后台自动完成。'
+    },
+    featureCards: {
+      models: {
+        title: '多模型聚合',
+        description: 'Claude、GPT、Gemini、DeepSeek、Antigravity 等能力在一个 API 入口聚合，用户侧不需要理解上游差异。',
+        eyebrow: 'Model Hub'
+      },
+      api: {
+        title: '统一 API 接口',
+        description: '兼容 OpenAI 风格调用，把不同模型协议收束成更好接入、也更好维护的出口。',
+        eyebrow: 'One Endpoint'
+      },
+      billing: {
+        title: '灵活计费',
+        description: 'Token 用量、倍率、余额、订单和兑换码闭环，让商业化规则清晰落地。',
+        eyebrow: 'Billing'
+      },
+      routing: {
+        title: '账号池调度',
+        description: '多账号资源自动编排，按可用性、分组和策略调度，减少单点异常对用户的影响。',
+        eyebrow: 'Routing'
+      },
+      guard: {
+        title: '安全可靠',
+        description: '密钥、额度、风控和调用记录在后台统一管理，公共页面只表达清晰可信的结果。',
+        eyebrow: 'Guard'
+      },
+      global: {
+        title: '全球边缘体验',
+        description: '面向团队、工具链和自动化任务提供稳定入口，后续可以扩展更多区域与上游渠道。',
+        eyebrow: 'Network'
+      }
+    },
+    guardBadges: {
+      key: '密钥',
+      permission: '权限',
+      risk: '风控',
+      logs: '记录'
+    },
+    flowSteps: {
+      accounts: {
+        title: '接入订阅账号',
+        description: 'OAuth、Session Key 或 API Key 统一沉淀为可调度资源。'
+      },
+      strategy: {
+        title: '分组和价格策略',
+        description: '不同用户组、倍率、并发和额度在后台集中维护。'
+      },
+      endpoint: {
+        title: '统一 API 出口',
+        description: '面向用户提供兼容接口，隐藏上游差异和账号切换细节。'
+      },
+      observability: {
+        title: '监控与账单闭环',
+        description: '调用、失败、延迟、余额和订单数据都能被追踪。'
+      }
+    },
+    modelStatus: {
+      supported: '已支持',
+      extensible: '可扩展',
+      continuing: '持续接入',
+      moreModels: '更多模型'
     },
     // 用户痛点区块
     painPoints: {
@@ -106,7 +218,26 @@ export default {
       button: '免费注册'
     },
     footer: {
-      allRightsReserved: '保留所有权利。'
+      allRightsReserved: '保留所有权利。',
+      terms: '服务条款',
+      privacy: '隐私条款'
+    }
+  },
+
+  support: {
+    panelAria: '客服面板',
+    closePanel: '关闭客服面板',
+    kicker: 'Support',
+    title: '需要帮助？',
+    intro: '套餐选择、订单支付、订阅添加或使用配置问题，都可以通过下面的联系方式咨询。',
+    trigger: '客服',
+    items: {
+      telegram: 'Telegram 客服',
+      qq: 'QQ 客服',
+      docs: '使用文档',
+      docsValue: '查看接入和配置说明',
+      contact: '客服联系方式',
+      emptyValue: '请在后台配置客服联系方式'
     }
   },
 

@@ -6,17 +6,129 @@ export default {
     docs: 'Docs',
     switchToLight: 'Switch to Light Mode',
     switchToDark: 'Switch to Dark Mode',
+    home: 'Home',
     dashboard: 'Dashboard',
     login: 'Login',
     getStarted: 'Get Started',
     goToDashboard: 'Go to Dashboard',
+    navigationLabel: 'Home navigation',
+    brandTagline: 'API Gateway',
+    defaultSiteName: '121Api Gateway',
+    heroKicker: 'Subscription Native API Relay',
+    viewCapabilities: 'View capabilities',
+    metricsAria: 'Platform highlights',
     // User-focused value proposition
     heroSubtitle: 'One Key, All AI Models',
-    heroDescription: 'No need to manage multiple subscriptions. Access Claude, GPT, Gemini and more with a single API key',
+    heroDescription: 'Turn Claude, GPT, Gemini, Antigravity and other subscription capabilities into one unified API. Account-pool routing, sticky sessions, usage billing and observability all happen from one entrance.',
     tags: {
       subscriptionToApi: 'Subscription to API',
       stickySession: 'Session Persistence',
       realtimeBilling: 'Pay As You Go'
+    },
+    metrics: {
+      compatibility: {
+        label: 'Protocol fit',
+        value: 'OpenAI / Claude / Gemini'
+      },
+      routing: {
+        label: 'Routing policy',
+        value: 'Account pool + sticky sessions'
+      },
+      billing: {
+        label: 'Cost clarity',
+        value: 'Usage records + balance control'
+      }
+    },
+    cockpit: {
+      title: 'live routing console',
+      trafficFlow: 'Traffic Flow',
+      healthy: 'healthy',
+      terminalRequest: 'curl https://121api.com/v1/chat/completions',
+      terminalResult: 'routed by sticky session · cost recorded'
+    },
+    routeRows: {
+      claudePool: 'Claude pool',
+      gptRoute: 'GPT route',
+      geminiLane: 'Gemini lane',
+      ready: 'ready',
+      sync: 'sync'
+    },
+    showcase: {
+      capabilityKicker: 'Gateway Capability',
+      capabilityTitle: 'Bring multi-model access into one stable entry point',
+      capabilityDescription: 'A lighter visual hierarchy presents the core capabilities: model aggregation, one endpoint, transparent billing and route protection, with advanced motion but without visual clutter.',
+      flowKicker: 'Unified API Flow',
+      flowTitle: 'A stable path from subscriptions to API keys',
+      flowDescription: 'Accounts, groups, pricing, risk controls and monitoring stay in the admin system while user-side calls resolve into one clean entry point.',
+      ecosystemKicker: 'Trusted Ecosystem',
+      ecosystemTitle: 'Models, tools and developer workflows can all plug in',
+      ecosystemDescription: 'This static ecosystem layer shows the direction for now. It can later move into admin-managed configuration as your business expands.',
+      ecosystemAria: 'Supported AI platforms and tools',
+      trustKicker: 'Reliable Service',
+      trustTitle: 'Connect to multiple models and keep the calling experience unified',
+      trustDescription: '121Api gives teams and individual developers a unified, clear and sustainable API service. You manage your key, balance and usage records; model switching, resource routing and failure protection are handled behind the scenes.'
+    },
+    featureCards: {
+      models: {
+        title: 'Multi-model aggregation',
+        description: 'Claude, GPT, Gemini, DeepSeek, Antigravity and more are aggregated behind one API entry point, so users do not need to understand upstream differences.',
+        eyebrow: 'Model Hub'
+      },
+      api: {
+        title: 'Unified API endpoint',
+        description: 'OpenAI-style compatibility brings different model protocols into one easier-to-integrate and easier-to-maintain output.',
+        eyebrow: 'One Endpoint'
+      },
+      billing: {
+        title: 'Flexible billing',
+        description: 'Token usage, multipliers, balances, orders and redemption codes form a clear commercial loop.',
+        eyebrow: 'Billing'
+      },
+      routing: {
+        title: 'Account-pool routing',
+        description: 'Multiple account resources are orchestrated by availability, group and policy, reducing the impact of single-account failures.',
+        eyebrow: 'Routing'
+      },
+      guard: {
+        title: 'Secure and reliable',
+        description: 'Keys, quotas, risk controls and call records are managed centrally; public pages communicate a clear and trustworthy result.',
+        eyebrow: 'Guard'
+      },
+      global: {
+        title: 'Global edge experience',
+        description: 'A stable entrance for teams, toolchains and automation tasks, with room to extend more regions and upstream channels later.',
+        eyebrow: 'Network'
+      }
+    },
+    guardBadges: {
+      key: 'Keys',
+      permission: 'Access',
+      risk: 'Risk',
+      logs: 'Logs'
+    },
+    flowSteps: {
+      accounts: {
+        title: 'Connect subscription accounts',
+        description: 'OAuth, Session Key or API Key credentials become schedulable resources.'
+      },
+      strategy: {
+        title: 'Groups and pricing policy',
+        description: 'User groups, multipliers, concurrency and quotas are maintained centrally.'
+      },
+      endpoint: {
+        title: 'Unified API output',
+        description: 'Users get a compatible API while upstream differences and account switching stay hidden.'
+      },
+      observability: {
+        title: 'Monitoring and billing loop',
+        description: 'Calls, failures, latency, balances and order data can all be tracked.'
+      }
+    },
+    modelStatus: {
+      supported: 'Supported',
+      extensible: 'Extensible',
+      continuing: 'Continuing',
+      moreModels: 'More models'
     },
     // Pain points section
     painPoints: {
@@ -106,7 +218,26 @@ export default {
       button: 'Sign Up Free'
     },
     footer: {
-      allRightsReserved: 'All rights reserved.'
+      allRightsReserved: 'All rights reserved.',
+      terms: 'Terms of Service',
+      privacy: 'Privacy Policy'
+    }
+  },
+
+  support: {
+    panelAria: 'Support panel',
+    closePanel: 'Close support panel',
+    kicker: 'Support',
+    title: 'Need help?',
+    intro: 'For plan selection, order payments, subscription setup or usage configuration, reach us through one of the options below.',
+    trigger: 'Support',
+    items: {
+      telegram: 'Telegram support',
+      qq: 'QQ support',
+      docs: 'Documentation',
+      docsValue: 'View integration and setup guide',
+      contact: 'Support contact',
+      emptyValue: 'Configure support contact info in the admin panel'
     }
   },
 

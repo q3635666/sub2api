@@ -5,26 +5,26 @@
         v-if="isOpen"
         class="support-backdrop"
         type="button"
-        aria-label="Close support panel"
+        :aria-label="t('support.closePanel')"
         @click="closePanel"
       ></button>
     </transition>
 
     <transition name="support-panel">
-      <section v-if="isOpen" class="support-panel" aria-label="Support">
+      <section v-if="isOpen" class="support-panel" :aria-label="t('support.panelAria')">
         <div class="panel-sheen" aria-hidden="true"></div>
         <div class="panel-header">
           <div>
-            <span>Support</span>
-            <h2>需要帮助？</h2>
+            <span>{{ t('support.kicker') }}</span>
+            <h2>{{ t('support.title') }}</h2>
           </div>
-          <button class="panel-close" type="button" aria-label="关闭客服面板" @click="closePanel">
+          <button class="panel-close" type="button" :aria-label="t('support.closePanel')" @click="closePanel">
             <Icon name="x" size="lg" :stroke-width="2.4" />
           </button>
         </div>
 
         <p class="panel-intro">
-          套餐选择、订单支付、订阅添加或使用配置问题，都可以通过下面的联系方式咨询。
+          {{ t('support.intro') }}
         </p>
 
         <div class="support-list">
@@ -66,13 +66,14 @@
     <button class="support-trigger" type="button" :aria-expanded="isOpen" @click="togglePanel">
       <span class="trigger-glow" aria-hidden="true"></span>
       <Icon name="chat" size="lg" :stroke-width="2.2" />
-      <span>客服</span>
+      <span>{{ t('support.trigger') }}</span>
     </button>
   </div>
 </template>
 
 <script setup lang="ts">
 import { computed, ref } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useAppStore } from '@/stores'
 import Icon from '@/components/icons/Icon.vue'
 
@@ -88,6 +89,7 @@ interface SupportItem {
 }
 
 const appStore = useAppStore()
+const { t } = useI18n()
 const isOpen = ref(false)
 
 const supportItems = computed<SupportItem[]>(() => {
@@ -99,7 +101,7 @@ const supportItems = computed<SupportItem[]>(() => {
   if (telegramUrl && telegramHandle) {
     items.push({
       key: 'telegram',
-      label: 'Telegram 客服',
+      label: t('support.items.telegram'),
       value: `@${telegramHandle.split(/[/?#]/)[0]}`,
       href: telegramUrl,
       icon: 'telegram',
@@ -111,7 +113,7 @@ const supportItems = computed<SupportItem[]>(() => {
   if (qq) {
     items.push({
       key: 'qq',
-      label: 'QQ 客服',
+      label: t('support.items.qq'),
       value: qq,
       href: `https://wpa.qq.com/msgrd?v=3&uin=${qq}&site=qq&menu=yes`,
       icon: 'chat',
@@ -122,8 +124,8 @@ const supportItems = computed<SupportItem[]>(() => {
   if (appStore.docUrl) {
     items.push({
       key: 'docs',
-      label: '使用文档',
-      value: '查看接入和配置说明',
+      label: t('support.items.docs'),
+      value: t('support.items.docsValue'),
       href: appStore.docUrl,
       icon: 'book',
       tone: 'tone-docs'
@@ -133,8 +135,8 @@ const supportItems = computed<SupportItem[]>(() => {
   if (items.length === 0) {
     items.push({
       key: 'contact',
-      label: '客服联系方式',
-      value: raw || '请在后台配置客服联系方式',
+      label: t('support.items.contact'),
+      value: raw || t('support.items.emptyValue'),
       icon: 'chat',
       tone: 'tone-qq'
     })
@@ -160,8 +162,8 @@ function handleCardClick(item: SupportItem) {
 <style scoped>
 .support-shell {
   position: fixed;
-  right: max(22px, env(safe-area-inset-right));
-  bottom: max(22px, env(safe-area-inset-bottom));
+  right: max(20px, env(safe-area-inset-right));
+  bottom: max(20px, env(safe-area-inset-bottom));
   z-index: 80;
 }
 
@@ -169,43 +171,51 @@ function handleCardClick(item: SupportItem) {
   position: fixed;
   inset: 0;
   border: 0;
-  background: rgba(2, 6, 23, 0.16);
-  backdrop-filter: blur(2px);
+  background: rgba(2, 6, 23, 0.1);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
 }
 
 .support-panel {
   position: absolute;
   right: 0;
-  bottom: 88px;
-  width: min(420px, calc(100vw - 32px));
+  bottom: 72px;
+  width: min(390px, calc(100vw - 32px));
   overflow: hidden;
-  border: 1px solid rgba(148, 163, 184, 0.34);
+  border: 0;
   border-radius: 8px;
   background:
-    radial-gradient(circle at 14% -12%, rgba(20, 184, 166, 0.26), transparent 34%),
-    radial-gradient(circle at 100% 20%, rgba(59, 130, 246, 0.18), transparent 32%),
-    linear-gradient(145deg, rgba(15, 23, 42, 0.97), rgba(14, 16, 36, 0.98));
+    radial-gradient(circle at 14% -10%, rgba(20, 184, 166, 0.18), transparent 38%),
+    radial-gradient(circle at 100% 12%, rgba(59, 130, 246, 0.12), transparent 36%),
+    linear-gradient(145deg, rgba(15, 23, 42, 0.58), rgba(8, 13, 24, 0.48));
   box-shadow:
-    0 30px 80px rgba(2, 6, 23, 0.42),
-    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+    0 28px 74px rgba(2, 6, 23, 0.28),
+    inset 0 1px 0 rgba(255, 255, 255, 0.12),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.12);
   color: #fff;
-  padding: 28px;
+  padding: 24px;
+  backdrop-filter: blur(30px) saturate(1.22);
+  -webkit-backdrop-filter: blur(30px) saturate(1.22);
+  isolation: isolate;
 }
 
 .panel-sheen {
   pointer-events: none;
   position: absolute;
   inset: 0;
+  z-index: -1;
   background:
-    linear-gradient(125deg, transparent 0%, rgba(255, 255, 255, 0.08) 44%, transparent 58%),
-    linear-gradient(rgba(255, 255, 255, 0.04) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255, 255, 255, 0.04) 1px, transparent 1px);
+    linear-gradient(125deg, transparent 0%, rgba(255, 255, 255, 0.12) 44%, transparent 58%),
+    radial-gradient(circle at 24% 0%, rgba(255, 255, 255, 0.1), transparent 36%),
+    linear-gradient(rgba(255, 255, 255, 0.035) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.035) 1px, transparent 1px);
   background-size:
     220% 100%,
+    100% 100%,
     44px 44px,
     44px 44px;
   animation: panel-shine 5.6s ease-in-out infinite;
-  opacity: 0.7;
+  opacity: 0.78;
 }
 
 .panel-header,
@@ -222,28 +232,33 @@ function handleCardClick(item: SupportItem) {
 }
 
 .panel-header span {
-  color: #b8c2d4;
-  font-size: 14px;
+  color: #99f6e4;
+  font-size: 12px;
   font-weight: 800;
+  text-transform: uppercase;
 }
 
 .panel-header h2 {
-  margin: 8px 0 0;
-  font-size: 34px;
+  margin: 7px 0 0;
+  font-size: 30px;
   font-weight: 880;
   line-height: 1;
 }
 
 .panel-close {
   display: grid;
-  width: 58px;
-  height: 58px;
+  width: 42px;
+  height: 42px;
   flex: 0 0 auto;
   place-items: center;
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 0;
   border-radius: 8px;
-  background: rgba(255, 255, 255, 0.11);
+  background:
+    radial-gradient(circle at 30% 18%, rgba(255, 255, 255, 0.12), transparent 48%),
+    rgba(255, 255, 255, 0.055);
   color: #fff;
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
   transition:
     transform 0.2s ease,
     background 0.2s ease;
@@ -256,10 +271,10 @@ function handleCardClick(item: SupportItem) {
 
 .panel-intro {
   position: relative;
-  margin: 24px 0;
+  margin: 20px 0;
   color: #c7cedc;
-  font-size: 18px;
-  line-height: 1.75;
+  font-size: 15px;
+  line-height: 1.72;
 }
 
 .support-list {
@@ -270,15 +285,20 @@ function handleCardClick(item: SupportItem) {
 
 .support-card {
   display: grid;
-  grid-template-columns: 58px 1fr 20px;
+  grid-template-columns: 48px 1fr 20px;
   align-items: center;
-  gap: 14px;
-  min-height: 84px;
-  border: 1px solid rgba(226, 232, 240, 0.18);
+  gap: 12px;
+  min-height: 74px;
+  border: 0;
   border-radius: 8px;
-  background: rgba(255, 255, 255, 0.09);
+  background:
+    radial-gradient(circle at 18% 0%, rgba(255, 255, 255, 0.16), transparent 42%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.095), rgba(255, 255, 255, 0.04)),
+    rgba(255, 255, 255, 0.045);
   padding: 12px;
   color: #fff;
+  backdrop-filter: blur(16px) saturate(1.12);
+  -webkit-backdrop-filter: blur(16px) saturate(1.12);
   transition:
     transform 0.22s ease,
     border-color 0.22s ease,
@@ -298,8 +318,11 @@ function handleCardClick(item: SupportItem) {
 
 .support-card:hover {
   transform: translateY(-3px);
-  border-color: rgba(255, 255, 255, 0.34);
-  background: rgba(255, 255, 255, 0.14);
+  border: 0;
+  background:
+    radial-gradient(circle at 18% 0%, rgba(255, 255, 255, 0.2), transparent 42%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.13), rgba(255, 255, 255, 0.06)),
+    rgba(255, 255, 255, 0.06);
   box-shadow: 0 18px 34px rgba(0, 0, 0, 0.2);
 }
 
@@ -309,31 +332,46 @@ function handleCardClick(item: SupportItem) {
 
 .support-icon {
   display: grid;
-  width: 58px;
-  height: 58px;
+  width: 48px;
+  height: 48px;
   place-items: center;
   border-radius: 8px;
   color: #fff;
 }
 
 .support-icon svg {
-  width: 28px;
-  height: 28px;
+  width: 23px;
+  height: 23px;
 }
 
 .tone-telegram {
-  background: linear-gradient(135deg, #38bdf8, #0284c7);
-  box-shadow: 0 14px 30px rgba(14, 165, 233, 0.26);
+  border: 0;
+  background:
+    radial-gradient(circle at 30% 24%, rgba(255, 255, 255, 0.22), transparent 46%),
+    linear-gradient(135deg, rgba(56, 189, 248, 0.46), rgba(2, 132, 199, 0.26));
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.12),
+    0 12px 26px rgba(14, 165, 233, 0.14);
 }
 
 .tone-qq {
-  background: linear-gradient(135deg, #14b8a6, #2563eb);
-  box-shadow: 0 14px 30px rgba(20, 184, 166, 0.24);
+  border: 0;
+  background:
+    radial-gradient(circle at 30% 24%, rgba(255, 255, 255, 0.22), transparent 46%),
+    linear-gradient(135deg, rgba(20, 184, 166, 0.46), rgba(37, 99, 235, 0.26));
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.12),
+    0 12px 26px rgba(20, 184, 166, 0.13);
 }
 
 .tone-docs {
-  background: linear-gradient(135deg, #8b5cf6, #4338ca);
-  box-shadow: 0 14px 30px rgba(139, 92, 246, 0.24);
+  border: 0;
+  background:
+    radial-gradient(circle at 30% 24%, rgba(255, 255, 255, 0.2), transparent 46%),
+    linear-gradient(135deg, rgba(59, 130, 246, 0.4), rgba(20, 184, 166, 0.22));
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.11),
+    0 12px 26px rgba(59, 130, 246, 0.13);
 }
 
 .support-copy {
@@ -344,14 +382,14 @@ function handleCardClick(item: SupportItem) {
 
 .support-copy span {
   color: #c7cedc;
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 780;
 }
 
 .support-copy strong {
   overflow: hidden;
   color: #fff;
-  font-size: 20px;
+  font-size: 17px;
   font-weight: 880;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -374,22 +412,25 @@ function handleCardClick(item: SupportItem) {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 12px;
-  min-width: 132px;
-  min-height: 62px;
+  gap: 8px;
+  min-width: 92px;
+  min-height: 48px;
   overflow: hidden;
-  border: 1px solid rgba(20, 184, 166, 0.28);
+  border: 0;
   border-radius: 999px;
   background:
-    linear-gradient(135deg, rgba(20, 184, 166, 0.13), rgba(37, 99, 235, 0.1)),
-    rgba(255, 255, 255, 0.84);
+    linear-gradient(135deg, rgba(20, 184, 166, 0.16), rgba(37, 99, 235, 0.08)),
+    rgba(255, 255, 255, 0.54);
   color: #0f766e;
-  font-size: 22px;
-  font-weight: 880;
+  font-size: 16px;
+  font-weight: 850;
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.88),
-    0 20px 42px rgba(20, 184, 166, 0.16);
-  backdrop-filter: blur(18px);
+    inset 0 1px 0 rgba(255, 255, 255, 0.84),
+    inset 0 -1px 0 rgba(15, 23, 42, 0.04),
+    0 18px 40px rgba(20, 184, 166, 0.12),
+    0 8px 20px rgba(15, 23, 42, 0.07);
+  backdrop-filter: blur(24px) saturate(1.24);
+  -webkit-backdrop-filter: blur(24px) saturate(1.24);
   transition:
     transform 0.22s ease,
     border-color 0.22s ease,
@@ -398,14 +439,39 @@ function handleCardClick(item: SupportItem) {
 }
 
 .support-trigger:hover {
-  transform: translateY(-4px);
-  border-color: rgba(20, 184, 166, 0.42);
+  transform: translateY(-3px);
+  border: 0;
   background:
-    linear-gradient(135deg, rgba(20, 184, 166, 0.18), rgba(37, 99, 235, 0.13)),
-    rgba(255, 255, 255, 0.94);
+    linear-gradient(135deg, rgba(20, 184, 166, 0.18), rgba(37, 99, 235, 0.1)),
+    rgba(255, 255, 255, 0.68);
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.92),
-    0 24px 50px rgba(20, 184, 166, 0.2);
+    0 20px 44px rgba(20, 184, 166, 0.18),
+    0 10px 24px rgba(15, 23, 42, 0.08);
+}
+
+.dark .support-trigger {
+  border: 0;
+  background:
+    linear-gradient(135deg, rgba(20, 184, 166, 0.18), rgba(37, 99, 235, 0.1)),
+    rgba(15, 23, 42, 0.56);
+  color: #99f6e4;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.14),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.2),
+    0 18px 42px rgba(0, 0, 0, 0.32),
+    0 8px 20px rgba(20, 184, 166, 0.1);
+}
+
+.dark .support-trigger:hover {
+  border: 0;
+  background:
+    linear-gradient(135deg, rgba(20, 184, 166, 0.22), rgba(37, 99, 235, 0.14)),
+    rgba(15, 23, 42, 0.68);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.16),
+    0 22px 46px rgba(0, 0, 0, 0.36),
+    0 10px 24px rgba(20, 184, 166, 0.13);
 }
 
 .support-trigger:active {
@@ -414,10 +480,10 @@ function handleCardClick(item: SupportItem) {
 
 .trigger-glow {
   position: absolute;
-  inset: -80% -30%;
-  background: conic-gradient(from 180deg, transparent, rgba(20, 184, 166, 0.2), transparent, rgba(59, 130, 246, 0.14), transparent);
+  inset: -110% -60%;
+  background: conic-gradient(from 180deg, transparent, rgba(20, 184, 166, 0.16), transparent, rgba(59, 130, 246, 0.1), transparent);
   animation: trigger-spin 7s linear infinite;
-  opacity: 0.7;
+  opacity: 0.55;
 }
 
 .support-trigger > svg,
@@ -472,12 +538,12 @@ function handleCardClick(item: SupportItem) {
 
 @media (max-width: 640px) {
   .support-shell {
-    right: 14px;
-    bottom: 14px;
+    right: 12px;
+    bottom: 12px;
   }
 
   .support-panel {
-    bottom: 66px;
+    bottom: 60px;
     padding: 22px;
   }
 
@@ -490,9 +556,9 @@ function handleCardClick(item: SupportItem) {
   }
 
   .support-trigger {
-    min-width: 48px;
-    width: 48px;
-    min-height: 48px;
+    min-width: 46px;
+    width: 46px;
+    min-height: 46px;
     gap: 8px;
     font-size: 18px;
   }

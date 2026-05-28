@@ -143,8 +143,8 @@ const iconStyle = computed(() => ({ '--brand-icon-size': dimension.value }))
   object-fit: contain;
 }
 
-.brand-icon :deep(.model-icon path[fill="#000000"]) {
-  fill: currentColor;
+.brand-icon-gpt :deep(.model-icon path) {
+  fill: #10a37f;
 }
 
 .brand-icon-svg {
