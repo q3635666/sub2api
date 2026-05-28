@@ -20,24 +20,7 @@
     @pointermove="handlePointerMove"
     @pointerleave="resetPointer"
   >
-    <div class="home-field" aria-hidden="true">
-      <div class="field-grid"></div>
-      <div class="field-scan field-scan-a"></div>
-      <div class="field-scan field-scan-b"></div>
-      <div class="field-lane lane-a"></div>
-      <div class="field-lane lane-b"></div>
-      <span
-        v-for="point in signalPoints"
-        :key="point.id"
-        class="field-node"
-        :style="{
-          left: point.left,
-          top: point.top,
-          animationDelay: point.delay,
-          '--node-accent': point.color
-        }"
-      ></span>
-    </div>
+    <InteractiveRouteBackground :is-dark="isDark" />
 
     <header class="home-header">
       <nav class="home-nav" aria-label="Home navigation">
@@ -432,6 +415,7 @@ import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useAuthStore, useAppStore } from '@/stores'
 import LocaleSwitcher from '@/components/common/LocaleSwitcher.vue'
+import InteractiveRouteBackground from '@/components/common/InteractiveRouteBackground.vue'
 import Icon from '@/components/icons/Icon.vue'
 import BrandIcon from '@/components/icons/BrandIcon.vue'
 
@@ -553,15 +537,6 @@ const heroMetrics = [
   { label: '协议兼容', value: 'OpenAI / Claude / Gemini' },
   { label: '调度策略', value: '账号池 + 会话保持' },
   { label: '费用透明', value: '按量记录 + 余额控制' }
-]
-
-const signalPoints = [
-  { id: 1, left: '8%', top: '18%', delay: '0s', color: '#14b8a6' },
-  { id: 2, left: '20%', top: '66%', delay: '.8s', color: '#f59e0b' },
-  { id: 3, left: '34%', top: '28%', delay: '1.4s', color: '#3b82f6' },
-  { id: 4, left: '58%', top: '76%', delay: '.3s', color: '#ef4444' },
-  { id: 5, left: '78%', top: '20%', delay: '1.1s', color: '#22c55e' },
-  { id: 6, left: '91%', top: '62%', delay: '.5s', color: '#8b5cf6' }
 ]
 
 const routeRows = [
@@ -933,10 +908,9 @@ onBeforeUnmount(() => {
   position: relative;
   min-height: 100vh;
   overflow: hidden;
-  background:
-    linear-gradient(115deg, rgba(255, 255, 255, 0.96) 0%, rgba(246, 251, 250, 0.94) 42%, rgba(239, 249, 255, 0.94) 100%),
-    #f8fafc;
+  background: transparent;
   color: var(--ink);
+  isolation: isolate;
 }
 
 .dark .home-page {
@@ -948,143 +922,7 @@ onBeforeUnmount(() => {
   --card-fill: rgba(12, 18, 31, 0.72);
   --card-fill-strong: rgba(15, 23, 42, 0.9);
   --aurora-line: rgba(45, 212, 191, 0.28);
-  background:
-    linear-gradient(115deg, rgba(3, 7, 18, 0.98) 0%, rgba(13, 21, 36, 0.96) 48%, rgba(6, 22, 31, 0.96) 100%),
-    #020617;
-}
-
-.home-field {
-  pointer-events: none;
-  position: absolute;
-  inset: 0;
-  overflow: hidden;
-}
-
-.home-field::before {
-  content: '';
-  position: absolute;
-  inset: -18%;
-  background:
-    radial-gradient(circle at var(--pointer-x) var(--pointer-y), rgba(13, 148, 136, 0.11), transparent 13%),
-    radial-gradient(circle at calc(var(--pointer-x) + 7%) calc(var(--pointer-y) + 5%), rgba(37, 99, 235, 0.06), transparent 18%);
-  filter: blur(40px);
-  opacity: 0;
-  transform: translate3d(0, 0, 0) scale(1.02);
-  transition:
-    opacity 0.45s ease,
-    filter 0.45s ease;
-}
-
-.home-page.is-pointer-active .home-field::before {
-  opacity: 0.9;
-}
-
-.field-grid {
-  position: absolute;
-  inset: 0;
-  background-image:
-    linear-gradient(var(--line) 1px, transparent 1px),
-    linear-gradient(90deg, var(--line) 1px, transparent 1px);
-  background-size: 64px 64px;
-  mask-image: linear-gradient(to bottom, #000 0%, rgba(0, 0, 0, 0.78) 58%, transparent 100%);
-}
-
-.field-grid::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background:
-    linear-gradient(90deg, rgba(13, 148, 136, 0.34) 1px, transparent 1px),
-    linear-gradient(rgba(13, 148, 136, 0.3) 1px, transparent 1px);
-  background-size:
-    64px 64px,
-    64px 64px;
-  mask-image: radial-gradient(
-    230px circle at var(--pointer-x) var(--pointer-y),
-    #000 0%,
-    rgba(0, 0, 0, 0.72) 38%,
-    transparent 72%
-  );
-  mix-blend-mode: screen;
-  opacity: 0;
-  transform: translate3d(0, 0, 0);
-  transition: opacity 0.16s ease;
-}
-
-.home-page.is-pointer-active .field-grid::before {
-  opacity: 0.68;
-}
-
-.field-grid::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background:
-    radial-gradient(
-      210px circle at var(--pointer-x) var(--pointer-y),
-      rgba(20, 184, 166, 0.16),
-      rgba(59, 130, 246, 0.08) 38%,
-      transparent 72%
-    );
-  filter: blur(22px);
-  opacity: 0;
-  mix-blend-mode: screen;
-  transition: opacity 0.18s ease;
-}
-
-.home-page.is-pointer-active .field-grid::after {
-  opacity: 0.72;
-}
-
-.field-scan {
-  position: absolute;
-  width: 42vw;
-  height: 1px;
-  background: linear-gradient(90deg, transparent, rgba(20, 184, 166, 0.55), transparent);
-  opacity: 0.45;
-}
-
-.field-scan-a {
-  left: 4vw;
-  top: 22vh;
-  animation: scan-drift 9s ease-in-out infinite;
-}
-
-.field-scan-b {
-  right: 2vw;
-  top: 68vh;
-  animation: scan-drift 11s ease-in-out infinite reverse;
-}
-
-.field-lane {
-  position: absolute;
-  height: 180px;
-  width: 1px;
-  background: linear-gradient(transparent, rgba(245, 158, 11, 0.42), transparent);
-  opacity: 0.35;
-}
-
-.lane-a {
-  left: 18%;
-  top: 12%;
-  transform: rotate(36deg);
-}
-
-.lane-b {
-  right: 20%;
-  bottom: 18%;
-  transform: rotate(-42deg);
-}
-
-.field-node {
-  position: absolute;
-  width: 8px;
-  height: 8px;
-  border: 1px solid var(--node-accent);
-  border-radius: 2px;
-  background: color-mix(in srgb, var(--node-accent) 18%, transparent);
-  box-shadow: 0 0 18px color-mix(in srgb, var(--node-accent) 55%, transparent);
-  animation: node-pulse 3s ease-in-out infinite;
+  background: transparent;
 }
 
 .home-header {
@@ -1193,8 +1031,19 @@ onBeforeUnmount(() => {
   color: var(--ink);
 }
 
+.icon-action:focus,
+.icon-action:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(20, 184, 166, 0.18);
+}
+
 .dark .icon-action:hover {
   background: rgba(255, 255, 255, 0.08);
+}
+
+.dark .icon-action:focus,
+.dark .icon-action:focus-visible {
+  box-shadow: 0 0 0 3px rgba(45, 212, 191, 0.22);
 }
 
 .login-pill {
@@ -3320,28 +3169,6 @@ onBeforeUnmount(() => {
 @keyframes partner-marquee {
   to {
     transform: translateX(-50%);
-  }
-}
-
-@keyframes scan-drift {
-  0%,
-  100% {
-    transform: translateX(-7vw);
-  }
-  50% {
-    transform: translateX(9vw);
-  }
-}
-
-@keyframes node-pulse {
-  0%,
-  100% {
-    opacity: 0.34;
-    transform: scale(0.88);
-  }
-  50% {
-    opacity: 1;
-    transform: scale(1.08);
   }
 }
 
