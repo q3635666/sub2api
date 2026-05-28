@@ -1,8 +1,9 @@
 <script setup lang="ts">
 import { RouterView, useRouter, useRoute } from 'vue-router'
-import { onMounted, onBeforeUnmount, watch } from 'vue'
+import { computed, onMounted, onBeforeUnmount, watch } from 'vue'
 import Toast from '@/components/common/Toast.vue'
 import NavigationProgress from '@/components/common/NavigationProgress.vue'
+import PublicSupportButton from '@/components/common/PublicSupportButton.vue'
 import { resolveDocumentTitle } from '@/router/title'
 import AnnouncementPopup from '@/components/common/AnnouncementPopup.vue'
 import { useAppStore, useAuthStore, useSubscriptionStore, useAnnouncementStore } from '@/stores'
@@ -14,6 +15,8 @@ const appStore = useAppStore()
 const authStore = useAuthStore()
 const subscriptionStore = useSubscriptionStore()
 const announcementStore = useAnnouncementStore()
+
+const showPublicSupport = computed(() => route.meta.requiresAuth === false && route.path !== '/setup')
 
 /**
  * Update favicon dynamically
@@ -114,6 +117,7 @@ onMounted(async () => {
 <template>
   <NavigationProgress />
   <RouterView />
+  <PublicSupportButton v-if="showPublicSupport" />
   <Toast />
   <AnnouncementPopup />
 </template>
