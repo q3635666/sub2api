@@ -51,6 +51,19 @@
             d="M55 126c7 8 31 8 38 0l-6 31H61l-6-31Z"
             fill="rgba(255,255,255,.24)"
           />
+          <g class="shirt-brand">
+            <rect x="55.5" y="136" width="37" height="13" rx="6.5" fill="rgba(255,255,255,.2)" />
+            <text
+              x="74"
+              y="145.2"
+              fill="#ecfeff"
+              font-family="Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif"
+              font-size="7.2"
+              font-weight="850"
+              letter-spacing=".45"
+              text-anchor="middle"
+            >121API</text>
+          </g>
           <path
             d="M47 149c14 7 39 7 55 0"
             fill="none"
