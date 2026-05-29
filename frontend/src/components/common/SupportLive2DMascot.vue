@@ -174,6 +174,8 @@ let speechHideTimer = 0
 let pointerX = 0
 let pointerY = 0
 let reducedMotion = false
+let lookBounds: DOMRect | null = null
+let lookBoundsDirty = true
 
 function clamp(value: number, min: number, max: number) {
   return Math.min(max, Math.max(min, value))
@@ -187,12 +189,26 @@ function applyLook(x: number, y: number) {
   root.style.setProperty('--tilt', `${(x * 4.8).toFixed(2)}deg`)
 }
 
+function invalidateLookBounds() {
+  lookBoundsDirty = true
+}
+
+function readLookBounds() {
+  if (lookBoundsDirty || !lookBounds) {
+    lookBounds = rootRef.value?.getBoundingClientRect() ?? null
+    lookBoundsDirty = false
+  }
+
+  return lookBounds
+}
+
 function updateLook() {
   animationFrame = 0
   const root = rootRef.value
   if (!root || reducedMotion) return
 
-  const rect = root.getBoundingClientRect()
+  const rect = readLookBounds()
+  if (!rect) return
   const centerX = rect.left + rect.width * 0.5
   const centerY = rect.top + rect.height * 0.42
   const x = clamp((pointerX - centerX) / Math.max(rect.width * 0.72, 1), -1, 1)
@@ -240,6 +256,7 @@ function showSpeech(index?: number) {
 }
 
 function handlePointerEnter() {
+  invalidateLookBounds()
   settled.value = false
   showSpeech(0)
 }
@@ -269,7 +286,10 @@ watch(
 onMounted(async () => {
   reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
   window.addEventListener('pointermove', handlePointerMove, { passive: true })
+  window.addEventListener('resize', invalidateLookBounds, { passive: true })
+  window.addEventListener('scroll', invalidateLookBounds, { passive: true })
   await nextTick()
+  invalidateLookBounds()
   requestAnimationFrame(() => {
     emit('ready')
     queueSpeech(props.speechInitialDelayMs, 0)
@@ -283,6 +303,8 @@ onBeforeUnmount(() => {
     window.cancelAnimationFrame(animationFrame)
   }
   window.removeEventListener('pointermove', handlePointerMove)
+  window.removeEventListener('resize', invalidateLookBounds)
+  window.removeEventListener('scroll', invalidateLookBounds)
 })
 </script>
 

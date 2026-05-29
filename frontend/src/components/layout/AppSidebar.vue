@@ -101,10 +101,11 @@
             </span>
           </div>
 
-          <router-link
+          <component
+            :is="sidebarLinkComponent(item)"
             v-for="item in personalNavItems"
             :key="item.path"
-            :to="item.path"
+            v-bind="sidebarLinkAttrs(item)"
             class="sidebar-link mb-1"
             :class="{ 'sidebar-link-active': isActive(item.path), 'sidebar-link-collapsed': sidebarCollapsed }"
             :title="sidebarCollapsed ? item.label : undefined"
@@ -114,17 +115,18 @@
             <span v-if="item.iconSvg" class="h-5 w-5 flex-shrink-0 sidebar-svg-icon" v-html="sanitizeSvg(item.iconSvg)"></span>
             <component v-else :is="item.icon" class="h-5 w-5 flex-shrink-0" />
             <span class="sidebar-label" :class="{ 'sidebar-label-collapsed': sidebarCollapsed }" :aria-hidden="sidebarCollapsed ? 'true' : 'false'">{{ item.label }}</span>
-          </router-link>
+          </component>
         </div>
       </template>
 
       <!-- Regular User View -->
       <template v-else-if="!appStore.backendModeEnabled">
         <div class="sidebar-section">
-          <router-link
+          <component
+            :is="sidebarLinkComponent(item)"
             v-for="item in userNavItems"
             :key="item.path"
-            :to="item.path"
+            v-bind="sidebarLinkAttrs(item)"
             class="sidebar-link mb-1"
             :class="{ 'sidebar-link-active': isActive(item.path), 'sidebar-link-collapsed': sidebarCollapsed }"
             :title="sidebarCollapsed ? item.label : undefined"
@@ -134,7 +136,7 @@
             <span v-if="item.iconSvg" class="h-5 w-5 flex-shrink-0 sidebar-svg-icon" v-html="sanitizeSvg(item.iconSvg)"></span>
             <component v-else :is="item.icon" class="h-5 w-5 flex-shrink-0" />
             <span class="sidebar-label" :class="{ 'sidebar-label-collapsed': sidebarCollapsed }" :aria-hidden="sidebarCollapsed ? 'true' : 'false'">{{ item.label }}</span>
-          </router-link>
+          </component>
         </div>
       </template>
     </nav>
@@ -187,12 +189,15 @@ import { useAdminSettingsStore, useAppStore, useAuthStore, useOnboardingStore } 
 import VersionBadge from '@/components/common/VersionBadge.vue'
 import { sanitizeSvg } from '@/utils/sanitize'
 import { FeatureFlags, makeSidebarFlag } from '@/utils/featureFlags'
+import { publicSiteConfig } from '../../../public-site.config'
 
 interface NavItem {
   path: string
   label: string
   icon: unknown
   iconSvg?: string
+  externalHref?: string
+  externalTarget?: '_blank' | '_self'
   hideInSimpleMode?: boolean
   children?: NavItem[]
   /**
@@ -563,6 +568,21 @@ const OrderListIcon = {
     )
 }
 
+const DocsIcon = {
+  render: () =>
+    h(
+      'svg',
+      { fill: 'none', viewBox: '0 0 24 24', stroke: 'currentColor', 'stroke-width': '1.5' },
+      [
+        h('path', {
+          'stroke-linecap': 'round',
+          'stroke-linejoin': 'round',
+          d: 'M12 6.75v12m0-12c-1.51-.99-3.347-1.5-5.25-1.5A8.97 8.97 0 002.25 6.4v12.375A8.97 8.97 0 016.75 17.625c1.903 0 3.74.51 5.25 1.5m0-12c1.51-.99 3.347-1.5 5.25-1.5 1.6 0 3.109.417 4.5 1.15V19.15a8.97 8.97 0 00-4.5-1.15c-1.903 0-3.74.51-5.25 1.5'
+        })
+      ]
+    )
+}
+
 const ChevronDoubleRightIcon = {
   render: () =>
     h(
@@ -653,6 +673,38 @@ const flagAffiliate = makeSidebarFlag(FeatureFlags.affiliate)
 const flagRiskControl = makeSidebarFlag(FeatureFlags.riskControl)
 const flagOpsMonitoring = () => adminSettingsStore.opsMonitoringEnabled
 const flagAdminPayment = () => adminSettingsStore.paymentEnabled
+const sidebarTutorialDocsConfig = publicSiteConfig.sidebar.tutorialDocs
+
+function getTutorialDocsHref(): string {
+  return sidebarTutorialDocsConfig.href.trim()
+}
+
+function isTutorialDocsEnabled(): boolean {
+  return sidebarTutorialDocsConfig.enabled && getTutorialDocsHref().length > 0
+}
+
+function isTutorialDocsCustomItem(item: { label: string; url?: string }): boolean {
+  const label = item.label.trim()
+  const href = getTutorialDocsHref()
+  return (
+    label === t('nav.tutorialDocs') ||
+    label === '教程文档' ||
+    label === 'Tutorial Docs' ||
+    (!!href && item.url?.trim() === href)
+  )
+}
+
+function createTutorialDocsNavItem(label = t('nav.tutorialDocs'), iconSvg?: string): NavItem {
+  const href = getTutorialDocsHref()
+  return {
+    path: href,
+    label,
+    icon: iconSvg ? null : DocsIcon,
+    iconSvg,
+    externalHref: href,
+    externalTarget: '_blank',
+  }
+}
 
 // buildSelfNavItems 构造用户自己的导航项（用户端主菜单和管理员的"我的账户"子菜单共享这组声明）。
 // withDashboard=true 时包含仪表盘（用户端），false 时不含（管理员的个人区已经有独立仪表盘入口）。
@@ -661,6 +713,21 @@ const flagAdminPayment = () => adminSettingsStore.paymentEnabled
 // 可用渠道紧挨渠道状态之上，让用户"先看自己能用什么、再看对应状态"。
 function buildSelfNavItems(withDashboard: boolean): NavItem[] {
   const items: NavItem[] = []
+  const tutorialDocsEnabled = isTutorialDocsEnabled()
+  const customItems = customMenuItemsForUser.value
+  const hasTutorialDocsCustomItem = customItems.some(isTutorialDocsCustomItem)
+  const customNavItems = customItems.map((item): NavItem => {
+    if (tutorialDocsEnabled && isTutorialDocsCustomItem(item)) {
+      return createTutorialDocsNavItem(item.label, item.icon_svg)
+    }
+    return {
+      path: `/custom/${item.id}`,
+      label: item.label,
+      icon: null,
+      iconSvg: item.icon_svg,
+    }
+  })
+
   if (withDashboard) {
     items.push({ path: '/dashboard', label: t('nav.dashboard'), icon: DashboardIcon })
   }
@@ -675,12 +742,8 @@ function buildSelfNavItems(withDashboard: boolean): NavItem[] {
     { path: '/redeem', label: t('nav.redeem'), icon: GiftIcon, hideInSimpleMode: true },
     { path: '/affiliate', label: t('nav.affiliate'), icon: UsersIcon, hideInSimpleMode: true, featureFlag: flagAffiliate },
     { path: '/profile', label: t('nav.profile'), icon: UserIcon },
-    ...customMenuItemsForUser.value.map((item): NavItem => ({
-      path: `/custom/${item.id}`,
-      label: item.label,
-      icon: null,
-      iconSvg: item.icon_svg,
-    })),
+    ...(tutorialDocsEnabled && !hasTutorialDocsCustomItem ? [createTutorialDocsNavItem()] : []),
+    ...customNavItems,
   )
   return items
 }
@@ -799,6 +862,21 @@ function toggleTheme() {
 
 function closeMobile() {
   appStore.setMobileOpen(false)
+}
+
+function sidebarLinkComponent(item: NavItem) {
+  return item.externalHref ? 'a' : 'router-link'
+}
+
+function sidebarLinkAttrs(item: NavItem) {
+  if (item.externalHref) {
+    return {
+      href: item.externalHref,
+      target: item.externalTarget ?? '_blank',
+      rel: item.externalTarget === '_self' ? undefined : 'noopener noreferrer',
+    }
+  }
+  return { to: item.path }
 }
 
 function handleMenuItemClick(itemPath: string) {

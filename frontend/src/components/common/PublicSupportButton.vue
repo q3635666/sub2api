@@ -110,6 +110,7 @@ const { t } = useI18n()
 const isOpen = ref(false)
 const mascotReady = ref(false)
 const mascotFailed = ref(false)
+const mascotMountAllowed = ref(false)
 const supportMascotConfig = publicSiteConfig.supportMascot
 
 const SupportLive2DMascot = defineAsyncComponent({
@@ -136,7 +137,7 @@ const mascotEnabled = computed(() =>
   supportMascotConfig.renderer === 'builtin' ||
   (supportMascotConfig.renderer === 'live2d' && Boolean(supportMascotConfig.live2dModelPath))
 )
-const shouldMountMascot = computed(() => mascotEnabled.value && !mascotFailed.value)
+const shouldMountMascot = computed(() => mascotMountAllowed.value && mascotEnabled.value && !mascotFailed.value)
 const activeMascotComponent = computed(() =>
   supportMascotConfig.renderer === 'live2d' ? SupportLive2DWidget : SupportLive2DMascot
 )
@@ -146,6 +147,8 @@ const supportMascotMessages = computed(() =>
 )
 
 let mascotTimeout = 0
+let mascotMountTimer = 0
+let mascotIdleHandle: number | null = null
 
 function resolveConfiguredText(source: ConfiguredText) {
   if ('i18nKey' in source && source.i18nKey) {
@@ -209,6 +212,9 @@ const supportItems = computed<SupportItem[]>(() => {
 
 function togglePanel() {
   isOpen.value = !isOpen.value
+  if (isOpen.value) {
+    allowMascotMount()
+  }
 }
 
 function closePanel() {
@@ -228,17 +234,50 @@ function handleMascotFail() {
   mascotFailed.value = true
 }
 
-onMounted(() => {
-  if (!mascotEnabled.value) return
+function startMascotTimeout() {
+  window.clearTimeout(mascotTimeout)
   mascotTimeout = window.setTimeout(() => {
     if (!mascotReady.value) {
       mascotFailed.value = true
     }
   }, supportMascotConfig.timeoutMs + 600)
+}
+
+function allowMascotMount() {
+  if (!mascotEnabled.value || mascotMountAllowed.value) return
+  mascotMountAllowed.value = true
+  startMascotTimeout()
+}
+
+function scheduleMascotMount() {
+  if (!mascotEnabled.value) return
+
+  mascotMountTimer = window.setTimeout(() => {
+    if ('requestIdleCallback' in window) {
+      mascotIdleHandle = window.requestIdleCallback(
+        () => {
+          mascotIdleHandle = null
+          allowMascotMount()
+        },
+        { timeout: supportMascotConfig.idleTimeoutMs }
+      )
+      return
+    }
+
+    allowMascotMount()
+  }, Math.max(0, supportMascotConfig.mountDelayMs))
+}
+
+onMounted(() => {
+  scheduleMascotMount()
 })
 
 onBeforeUnmount(() => {
+  window.clearTimeout(mascotMountTimer)
   window.clearTimeout(mascotTimeout)
+  if (mascotIdleHandle !== null && 'cancelIdleCallback' in window) {
+    window.cancelIdleCallback(mascotIdleHandle)
+  }
 })
 </script>
 

@@ -86,7 +86,36 @@ type ThreeBackgroundThemeTuning = {
   vignetteStrength: number
 }
 
+type SidebarTutorialDocsConfig = {
+  /**
+   * 是否在用户侧边栏显示“教程文档”入口。
+   * true：显示入口；false：隐藏入口。
+   */
+  enabled: boolean
+
+  /**
+   * 教程文档的静态 HTML 访问地址。
+   *
+   * 推荐文件位置：frontend/public/docs/tutorial.html
+   * 对应访问路径：/docs/tutorial.html
+   *
+   * 注意：
+   * - Vite 会把 frontend/public 里的文件原样发布到站点根目录。
+   * - 如果修改文件名或目录，这里也要同步改成新的访问路径。
+   * - 生产环境如果是嵌入式前端包，需要把 HTML 文件放好后重新构建前端。
+   */
+  href: string
+}
+
 type PublicSiteConfig = {
+  sidebar: {
+    /**
+     * 用户侧边栏里的教程文档入口。
+     * 该入口会用新标签页打开，不进入 Vue Router，也不会影响任何接口。
+     */
+    tutorialDocs: SidebarTutorialDocsConfig
+  }
+
   background: {
     /**
      * 背景版本开关：
@@ -94,6 +123,28 @@ type PublicSiteConfig = {
      * - canvas：之前的 Canvas 版本，方便快速回退对比。
      */
     renderer: BackgroundRenderer
+
+    /**
+     * 不同公共页面的背景“安静模式”开关。
+     *
+     * subtle = true 时不会换背景版本，也不会关闭鼠标联动；它只会让当前页面的背景更克制：
+     * - 粒子数量约减少到 72%
+     * - 粒子尺寸约减少到 74%
+     * - 粒子透明度约减少到 72%
+     * - 空闲状态渲染频率更低，适合表单页、登录页等需要更高可读性的页面
+     *
+     * subtle = false 时使用完整首页展示效果，粒子更丰富、空间感更强。
+     *
+     * 调整建议：
+     * - 希望首页和登录页完全一致：把 home 和 auth 设成同一个值。
+     * - 觉得登录页太素：把 auth 改成 false。
+     * - 觉得首页太花：把 home 改成 true。
+     * - 只想调深浅/亮度，不想改数量：优先改下面 three.light / three.dark 里的 particleOpacity、particleSize。
+     */
+    routeSubtle: {
+      home: boolean
+      auth: boolean
+    }
 
     /**
      * Three.js 背景深浅配置。
@@ -131,6 +182,19 @@ type PublicSiteConfig = {
      * 小人组件懒加载延迟。加载完成前会显示原来的客服按钮兜底。
      */
     loadDelayMs: number
+
+    /**
+     * 页面进入后多久才开始挂载小人组件。
+     * 这不会关闭客服入口，延迟期间仍显示原来的客服按钮。
+     * 数值越大，首屏越轻；数值越小，小人越早出现。
+     */
+    mountDelayMs: number
+
+    /**
+     * requestIdleCallback 最多等待多久后强制挂载。
+     * 数值越大，越倾向等浏览器真正空闲；数值越小，小人更早出现。
+     */
+    idleTimeoutMs: number
 
     /**
      * 小人加载超时时间。超时或失败后保留原来的客服按钮，避免入口消失。
@@ -222,8 +286,20 @@ type PublicSiteConfig = {
 }
 
 export const publicSiteConfig: PublicSiteConfig = {
+  sidebar: {
+    tutorialDocs: {
+      enabled: true,
+      href: '/docs/tutorial.html'
+    }
+  },
+
   background: {
     renderer: 'three',
+
+    routeSubtle: {
+      home: false,
+      auth: false
+    },
 
     three: {
       /**
@@ -276,6 +352,8 @@ export const publicSiteConfig: PublicSiteConfig = {
     // renderer: 'live2d',
     // live2dModelPath: 'https://model.oml2d.com/HK416-1-normal/model.json',
     loadDelayMs: 450,
+    mountDelayMs: 3200,
+    idleTimeoutMs: 2600,
     timeoutMs: 3200,
     speechInitialDelayMs: 900,
     speechIntervalMs: 8200,

@@ -1,6 +1,6 @@
 <template>
   <div class="auth-shell">
-    <InteractiveRouteBackground :is-dark="isDark" subtle />
+    <InteractiveRouteBackground :is-dark="isDark" :subtle="authBackgroundSubtle" />
 
     <header class="auth-header">
       <nav class="auth-nav" aria-label="Auth navigation">
@@ -90,10 +90,12 @@ import { sanitizeUrl } from '@/utils/url'
 import InteractiveRouteBackground from '@/components/common/InteractiveRouteBackground.vue'
 import LocaleSwitcher from '@/components/common/LocaleSwitcher.vue'
 import Icon from '@/components/icons/Icon.vue'
+import { publicSiteConfig } from '../../../public-site.config'
 
 const appStore = useAppStore()
 const authStore = useAuthStore()
 const { t } = useI18n()
+const authBackgroundSubtle = publicSiteConfig.background.routeSubtle.auth
 const isDark = ref(document.documentElement.classList.contains('dark'))
 const isThemeSwitching = ref(false)
 let themeObserver: MutationObserver | null = null

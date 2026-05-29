@@ -20,10 +20,8 @@
       'is-theme-switching': isThemeSwitching
     }"
     :style="pointerStyle"
-    @pointermove="handlePointerMove"
-    @pointerleave="resetPointer"
   >
-    <InteractiveRouteBackground :is-dark="isDark" />
+    <InteractiveRouteBackground :is-dark="isDark" :subtle="homeBackgroundSubtle" />
 
     <header class="home-header">
       <nav class="home-nav" :aria-label="t('home.navigationLabel')">
@@ -113,7 +111,12 @@
         </div>
 
         <div class="hero-visual" aria-hidden="true">
-          <div class="route-cockpit spotlight-card">
+          <div
+            ref="spotlightCard"
+            class="route-cockpit spotlight-card"
+            @pointermove="handlePointerMove"
+            @pointerleave="resetPointer"
+          >
             <div class="cockpit-topbar">
               <span></span>
               <span></span>
@@ -128,6 +131,7 @@
                   <strong>{{ t('home.cockpit.healthy') }}</strong>
                 </div>
                 <div
+                  ref="matrixLayer"
                   class="map-layers"
                   :class="{ 'is-matrix-active': matrixActive }"
                   @pointermove="handleMatrixMove"
@@ -139,7 +143,6 @@
                       :key="cell.id"
                       class="matrix-cell"
                       :style="{
-                        '--cell-intensity': cell.intensity.toFixed(3),
                         '--cell-delay': `${cell.delay}ms`
                       }"
                     ></span>
@@ -181,7 +184,7 @@
               </div>
             </div>
 
-            <div class="terminal-strip hacker-terminal">
+            <div ref="terminalStrip" class="terminal-strip hacker-terminal">
               <p
                 v-for="line in terminalVisibleLines"
                 :key="line.id"
@@ -189,7 +192,7 @@
                 :class="[`terminal-line-${line.tone}`, { 'is-active': line.active }]"
               >
                 <span class="terminal-prompt">{{ line.prompt }}</span>
-                <code>{{ line.text }}</code>
+                <code :data-line-id="line.id">{{ line.text }}</code>
                 <i v-if="line.active" class="terminal-cursor"></i>
               </p>
             </div>
@@ -337,54 +340,59 @@
         </div>
       </section>
 
-      <section id="models" class="section-block model-section">
+      <section id="models" ref="modelSection" class="section-block model-section">
         <div class="section-heading compact">
           <span>{{ t('home.showcase.ecosystemKicker') }}</span>
           <h2>{{ t('home.showcase.ecosystemTitle') }}</h2>
           <p>{{ t('home.showcase.ecosystemDescription') }}</p>
         </div>
 
-        <div class="partner-carousel" :aria-label="t('home.showcase.ecosystemAria')">
-          <div class="partner-fade partner-fade-left"></div>
-          <div class="partner-fade partner-fade-right"></div>
-          <div class="partner-track">
-            <article
-              v-for="(partner, index) in partnerLoop"
-              :key="`${partner.name}-${index}`"
-              class="partner-item aurora-card"
-              :class="{ 'is-image-icon': partner.icon === 'codex' }"
-              :style="{ '--partner-color': partner.color }"
-            >
-              <span class="partner-logo">
-                <img
-                  v-if="partner.icon === 'gateway'"
-                  :src="siteLogo || '/logo.png'"
-                  alt=""
-                  class="project-logo-icon"
-                />
-                <BrandIcon v-else :name="partner.icon" size="lg" />
-              </span>
-              <strong>{{ partner.name }}</strong>
-              <em>{{ partner.type }}</em>
-            </article>
+        <template v-if="modelContentMounted">
+          <div class="partner-carousel" :aria-label="t('home.showcase.ecosystemAria')">
+            <div class="partner-fade partner-fade-left"></div>
+            <div class="partner-fade partner-fade-right"></div>
+            <div class="partner-track">
+              <article
+                v-for="partner in partnerLoop"
+                :key="partner.key"
+                v-memo="[partner.name, partner.icon, partner.type, siteLogo]"
+                class="partner-item aurora-card"
+                :class="{ 'is-image-icon': partner.icon === 'codex' }"
+                :style="{ '--partner-color': partner.color }"
+                :aria-hidden="partner.clone ? 'true' : undefined"
+              >
+                <span class="partner-logo">
+                  <img
+                    v-if="partner.icon === 'gateway'"
+                    :src="siteLogo || '/logo.png'"
+                    alt=""
+                    class="project-logo-icon"
+                  />
+                  <BrandIcon v-else :name="partner.icon" size="lg" />
+                </span>
+                <strong>{{ partner.name }}</strong>
+                <em>{{ partner.type }}</em>
+              </article>
+            </div>
           </div>
-        </div>
 
-        <div class="model-strip">
-          <span
-            v-for="provider in modelHighlights"
-            :key="provider.name"
-            :style="{ '--provider-color': provider.color }"
-          >
-            <span class="provider-mark">
-              <BrandIcon :name="provider.icon" size="sm" />
+          <div class="model-strip">
+            <span
+              v-for="provider in modelHighlights"
+              :key="provider.name"
+              :style="{ '--provider-color': provider.color }"
+            >
+              <span class="provider-mark">
+                <BrandIcon :name="provider.icon" size="sm" />
+              </span>
+              <span class="provider-copy">
+                <strong>{{ provider.name }}</strong>
+                <em>{{ provider.status }}</em>
+              </span>
             </span>
-            <span class="provider-copy">
-              <strong>{{ provider.name }}</strong>
-              <em>{{ provider.status }}</em>
-            </span>
-          </span>
-        </div>
+          </div>
+        </template>
+        <div v-else class="model-lazy-spacer" aria-hidden="true"></div>
       </section>
 
       <section id="trust" class="section-block trust-section">
@@ -441,18 +449,34 @@ import {
 
 const { t } = useI18n()
 const homeConfig = publicSiteConfig.home
+const homeBackgroundSubtle = publicSiteConfig.background.routeSubtle.home
 
 const authStore = useAuthStore()
 const appStore = useAppStore()
 const homeRoot = ref<HTMLElement | null>(null)
+const spotlightCard = ref<HTMLElement | null>(null)
+const matrixLayer = ref<HTMLElement | null>(null)
 const featureMosaic = ref<HTMLElement | null>(null)
 const capabilitySection = ref<HTMLElement | null>(null)
+const modelSection = ref<HTMLElement | null>(null)
+const terminalStrip = ref<HTMLElement | null>(null)
 
 const pointerActive = ref(false)
 const mosaicActive = ref(false)
+const modelContentMounted = ref(false)
 const isDark = ref(document.documentElement.classList.contains('dark'))
 const isThemeSwitching = ref(false)
-const matrixFocus = ref<{ col: number; row: number } | null>(null)
+const matrixActive = ref(false)
+const matrixFocus = {
+  col: -1,
+  row: -1
+}
+
+type MosaicCardLayout = {
+  card: HTMLElement
+  rect: DOMRect
+}
+
 const mosaicPointer = {
   active: false,
   initialized: false,
@@ -462,6 +486,8 @@ const mosaicPointer = {
   smoothY: 0
 }
 let mosaicFrame = 0
+let pointerFrame = 0
+let matrixFrame = 0
 let themeSwitchTimer = 0
 let terminalTimer = 0
 let brandEchoFrame = 0
@@ -469,6 +495,21 @@ let terminalLineIndex = 0
 let terminalCharIndex = 0
 let terminalLineId = 0
 let terminalNeedsNewLine = true
+let pointerClientX = 0
+let pointerClientY = 0
+let spotlightLayoutRect: DOMRect | null = null
+let spotlightLayoutDirty = true
+let matrixClientX = 0
+let matrixClientY = 0
+let matrixLayoutRect: DOMRect | null = null
+let matrixLayoutDirty = true
+let matrixCellElements: HTMLElement[] = []
+let matrixActiveCellIndexes = new Set<number>()
+let mosaicLayoutTarget: HTMLElement | null = null
+let mosaicLayoutRect: DOMRect | null = null
+let mosaicCardLayouts: MosaicCardLayout[] = []
+let mosaicLayoutDirty = true
+let sectionObserver: IntersectionObserver | null = null
 
 type TerminalVisibleLine = TerminalSourceLine & {
   id: number
@@ -520,22 +561,15 @@ const pointerStyle = {
 
 const matrixCols = homeConfig.matrix.cols
 const matrixRows = homeConfig.matrix.rows
-const matrixActive = computed(() => matrixFocus.value !== null)
-const matrixCells = computed(() =>
-  Array.from({ length: matrixCols * matrixRows }, (_, index) => {
-    const col = index % matrixCols
-    const row = Math.floor(index / matrixCols)
-    const distance = matrixFocus.value
-      ? Math.hypot(col - matrixFocus.value.col, row - matrixFocus.value.row)
-      : Number.POSITIVE_INFINITY
+const matrixCells = Array.from({ length: matrixCols * matrixRows }, (_, index) => {
+  const col = index % matrixCols
+  const row = Math.floor(index / matrixCols)
 
-    return {
-      id: index,
-      intensity: Math.max(0, 1 - distance / homeConfig.matrix.activeRadius),
-      delay: (col * homeConfig.matrix.colDelayMs + row * homeConfig.matrix.rowDelayMs) % homeConfig.matrix.maxDelayMs
-    }
-  })
-)
+  return {
+    id: index,
+    delay: (col * homeConfig.matrix.colDelayMs + row * homeConfig.matrix.rowDelayMs) % homeConfig.matrix.maxDelayMs
+  }
+})
 
 const brandEchoText = homeConfig.brandEchoText
 
@@ -612,7 +646,18 @@ const flowSteps = computed<FlowStep[]>(() =>
 
 const partnerItems = homeConfig.partnerItems
 
-const partnerLoop = computed(() => [...partnerItems, ...partnerItems])
+const partnerLoop = [
+  ...partnerItems.map((item, index) => ({
+    ...item,
+    key: `${item.name}-${index}-primary`,
+    clone: false
+  })),
+  ...partnerItems.map((item, index) => ({
+    ...item,
+    key: `${item.name}-${index}-clone`,
+    clone: true
+  }))
+]
 
 const modelHighlights = computed<Array<{ name: string; icon: BrandIconName; status: string; color: string }>>(() =>
   homeConfig.modelHighlights.map((item) => ({
@@ -623,62 +668,187 @@ const modelHighlights = computed<Array<{ name: string; icon: BrandIconName; stat
   }))
 )
 
-function handlePointerMove(event: PointerEvent) {
-  const rect = homeRoot.value?.getBoundingClientRect()
-  if (!rect) return
-  const relativeX = Math.min(rect.width, Math.max(0, event.clientX - rect.left))
-  const relativeY = Math.min(rect.height, Math.max(0, event.clientY - rect.top))
+function invalidateSpotlightLayout() {
+  spotlightLayoutDirty = true
+}
+
+function readSpotlightLayout() {
+  if (spotlightLayoutDirty || !spotlightLayoutRect) {
+    spotlightLayoutRect = spotlightCard.value?.getBoundingClientRect() ?? null
+    spotlightLayoutDirty = false
+  }
+
+  return spotlightLayoutRect
+}
+
+function renderPointerFocus() {
+  pointerFrame = 0
+  const target = spotlightCard.value
+  const rect = readSpotlightLayout()
+  if (!target || !rect) return
+  const relativeX = Math.min(rect.width, Math.max(0, pointerClientX - rect.left))
+  const relativeY = Math.min(rect.height, Math.max(0, pointerClientY - rect.top))
   const xPercent = (relativeX / rect.width) * 100
   const yPercent = (relativeY / rect.height) * 100
 
-  pointerActive.value = true
-  homeRoot.value?.style.setProperty('--pointer-x', `${xPercent}%`)
-  homeRoot.value?.style.setProperty('--pointer-y', `${yPercent}%`)
+  if (!pointerActive.value) {
+    pointerActive.value = true
+  }
+  target.style.setProperty('--pointer-x', `${xPercent}%`)
+  target.style.setProperty('--pointer-y', `${yPercent}%`)
+}
 
-  const mosaicRect = featureMosaic.value?.getBoundingClientRect()
-  if (
-    mosaicActive.value &&
-    mosaicRect &&
-    (event.clientX < mosaicRect.left ||
-      event.clientX > mosaicRect.right ||
-      event.clientY < mosaicRect.top ||
-      event.clientY > mosaicRect.bottom)
-  ) {
-    resetMosaicFocus()
+function handlePointerMove(event: PointerEvent) {
+  pointerClientX = event.clientX
+  pointerClientY = event.clientY
+
+  if (!pointerFrame) {
+    pointerFrame = window.requestAnimationFrame(renderPointerFocus)
   }
 }
 
 function resetPointer() {
+  if (pointerFrame) {
+    window.cancelAnimationFrame(pointerFrame)
+    pointerFrame = 0
+  }
   pointerActive.value = false
-  homeRoot.value?.style.setProperty('--pointer-x', '50%')
-  homeRoot.value?.style.setProperty('--pointer-y', '42%')
+  spotlightCard.value?.style.setProperty('--pointer-x', '50%')
+  spotlightCard.value?.style.setProperty('--pointer-y', '42%')
+  invalidateSpotlightLayout()
   resetMosaicFocus()
 }
 
-function handleMatrixMove(event: PointerEvent) {
-  const target = event.currentTarget as HTMLElement
-  const rect = target.getBoundingClientRect()
-  const x = Math.min(1, Math.max(0, (event.clientX - rect.left) / rect.width))
-  const y = Math.min(1, Math.max(0, (event.clientY - rect.top) / rect.height))
+function readMatrixCells(target: HTMLElement) {
+  if (matrixCellElements.length !== matrixCells.length) {
+    matrixCellElements = Array.from(target.querySelectorAll<HTMLElement>('.matrix-cell'))
+  }
+
+  return matrixCellElements
+}
+
+function updateMatrixCells() {
+  const target = matrixLayer.value
+  if (!target) return
+
+  const cells = readMatrixCells(target)
+  const nextIntensities = new Map<number, number>()
+  const activeRadius = homeConfig.matrix.activeRadius
+  const radiusLimit = Math.ceil(activeRadius)
+
+  if (matrixFocus.col >= 0 && matrixFocus.row >= 0) {
+    const minCol = Math.max(0, matrixFocus.col - radiusLimit)
+    const maxCol = Math.min(matrixCols - 1, matrixFocus.col + radiusLimit)
+    const minRow = Math.max(0, matrixFocus.row - radiusLimit)
+    const maxRow = Math.min(matrixRows - 1, matrixFocus.row + radiusLimit)
+
+    for (let row = minRow; row <= maxRow; row += 1) {
+      for (let col = minCol; col <= maxCol; col += 1) {
+        const distance = Math.hypot(col - matrixFocus.col, row - matrixFocus.row)
+        const intensity = Math.max(0, 1 - distance / activeRadius)
+        if (intensity > 0.001) {
+          nextIntensities.set(row * matrixCols + col, intensity)
+        }
+      }
+    }
+  }
+
+  const touchedIndexes = new Set([...matrixActiveCellIndexes, ...nextIntensities.keys()])
+  touchedIndexes.forEach((index) => {
+    const cell = cells[index]
+    if (!cell) return
+    const intensity = nextIntensities.get(index) ?? 0
+    cell.style.setProperty('--cell-intensity', intensity.toFixed(3))
+  })
+  matrixActiveCellIndexes = new Set(nextIntensities.keys())
+}
+
+function invalidateMatrixLayout() {
+  matrixLayoutDirty = true
+}
+
+function readMatrixLayout(target: HTMLElement) {
+  if (matrixLayoutDirty || !matrixLayoutRect) {
+    matrixLayoutRect = target.getBoundingClientRect()
+    matrixLayoutDirty = false
+  }
+
+  return matrixLayoutRect
+}
+
+function renderMatrixFocus() {
+  matrixFrame = 0
+  const target = matrixLayer.value
+  if (!target) return
+
+  const rect = readMatrixLayout(target)
+  const x = Math.min(1, Math.max(0, (matrixClientX - rect.left) / rect.width))
+  const y = Math.min(1, Math.max(0, (matrixClientY - rect.top) / rect.height))
 
   target.style.setProperty('--matrix-x', `${x * 100}%`)
   target.style.setProperty('--matrix-y', `${y * 100}%`)
-  matrixFocus.value = {
+  const nextFocus = {
     col: Math.min(matrixCols - 1, Math.max(0, Math.floor(x * matrixCols))),
     row: Math.min(matrixRows - 1, Math.max(0, Math.floor(y * matrixRows)))
+  }
+  if (!matrixActive.value) {
+    matrixActive.value = true
+  }
+  if (matrixFocus.col !== nextFocus.col || matrixFocus.row !== nextFocus.row) {
+    matrixFocus.col = nextFocus.col
+    matrixFocus.row = nextFocus.row
+    updateMatrixCells()
+  }
+}
+
+function handleMatrixMove(event: PointerEvent) {
+  matrixClientX = event.clientX
+  matrixClientY = event.clientY
+
+  if (!matrixFrame) {
+    matrixFrame = window.requestAnimationFrame(renderMatrixFocus)
   }
 }
 
 function resetMatrixFocus(event: PointerEvent) {
+  if (matrixFrame) {
+    window.cancelAnimationFrame(matrixFrame)
+    matrixFrame = 0
+  }
   const target = event.currentTarget as HTMLElement
   target.style.setProperty('--matrix-x', '50%')
   target.style.setProperty('--matrix-y', '50%')
-  matrixFocus.value = null
+  matrixFocus.col = -1
+  matrixFocus.row = -1
+  matrixActive.value = false
+  invalidateMatrixLayout()
+  updateMatrixCells()
 }
 
 function scheduleMosaicRender() {
   if (mosaicFrame) return
   mosaicFrame = window.requestAnimationFrame(renderMosaicFocus)
+}
+
+function invalidateMosaicLayout() {
+  mosaicLayoutDirty = true
+}
+
+function readMosaicLayout(target: HTMLElement) {
+  if (mosaicLayoutDirty || mosaicLayoutTarget !== target || !mosaicLayoutRect) {
+    mosaicLayoutTarget = target
+    mosaicLayoutRect = target.getBoundingClientRect()
+    mosaicCardLayouts = Array.from(target.querySelectorAll<HTMLElement>('.feature-card'), (card) => ({
+      card,
+      rect: card.getBoundingClientRect()
+    }))
+    mosaicLayoutDirty = false
+  }
+
+  return {
+    rect: mosaicLayoutRect,
+    cards: mosaicCardLayouts
+  }
 }
 
 function renderMosaicFocus() {
@@ -699,7 +869,7 @@ function renderMosaicFocus() {
 }
 
 function updateMosaicFocus(target: HTMLElement, x: number, y: number) {
-  const rect = target.getBoundingClientRect()
+  const { rect, cards } = readMosaicLayout(target)
   if (!rect.width || !rect.height) return
 
   const clientX = rect.left + x
@@ -712,8 +882,7 @@ function updateMosaicFocus(target: HTMLElement, x: number, y: number) {
   target.style.setProperty('--mosaic-x-percent', `${xPercent}%`)
   target.style.setProperty('--mosaic-y-percent', `${yPercent}%`)
 
-  target.querySelectorAll<HTMLElement>('.feature-card').forEach((card, index) => {
-    const cardRect = card.getBoundingClientRect()
+  cards.forEach(({ card, rect: cardRect }, index) => {
     const localX = Math.min(cardRect.width, Math.max(0, clientX - cardRect.left))
     const localY = Math.min(cardRect.height, Math.max(0, clientY - cardRect.top))
     const dx =
@@ -754,8 +923,11 @@ function updateMosaicFocus(target: HTMLElement, x: number, y: number) {
 
 function handleMosaicMove(event: PointerEvent) {
   const target = featureMosaic.value
-  const rect = target?.getBoundingClientRect()
-  if (!target || !rect) return
+  if (!target) return
+  if (!mosaicPointer.active) {
+    invalidateMosaicLayout()
+  }
+  const { rect } = readMosaicLayout(target)
   const x = Math.min(rect.width, Math.max(0, event.clientX - rect.left))
   const y = Math.min(rect.height, Math.max(0, event.clientY - rect.top))
 
@@ -779,6 +951,7 @@ function resetMosaicFocus() {
   }
   mosaicPointer.active = false
   mosaicPointer.initialized = false
+  invalidateMosaicLayout()
   mosaicActive.value = false
   featureMosaic.value?.style.setProperty('--mosaic-x', '50%')
   featureMosaic.value?.style.setProperty('--mosaic-y', '50%')
@@ -815,6 +988,20 @@ function beginTerminalLine() {
   ].slice(-2)
 }
 
+function writeActiveTerminalText(text: string) {
+  const activeIndex = terminalVisibleLines.value.findIndex((line) => line.active)
+  const activeLine = terminalVisibleLines.value[activeIndex]
+  if (!activeLine) return
+
+  const target = terminalStrip.value?.querySelector<HTMLElement>(`code[data-line-id="${activeLine.id}"]`)
+  if (target) {
+    target.textContent = text
+    return
+  }
+
+  activeLine.text = text
+}
+
 function tickTerminal() {
   if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
     terminalVisibleLines.value = terminalSourceLines.slice(-2).map((line, index) => ({
@@ -847,9 +1034,7 @@ function tickTerminal() {
   if (terminalCharIndex < source.text.length) {
     terminalCharIndex += 1
     const typedText = source.text.slice(0, terminalCharIndex)
-    terminalVisibleLines.value = terminalVisibleLines.value.map((line) =>
-      line.id === activeLine.id ? { ...line, text: typedText } : line
-    )
+    writeActiveTerminalText(typedText)
 
     const char = source.text[terminalCharIndex - 1]
     const isPunctuation = /[.,:;()[\]{}=>-]/.test(char)
@@ -859,6 +1044,8 @@ function tickTerminal() {
     return
   }
 
+  activeLine.text = source.text
+  writeActiveTerminalText(source.text)
   terminalLineIndex = (terminalLineIndex + 1) % terminalSourceLines.length
   terminalCharIndex = 0
   terminalNeedsNewLine = true
@@ -929,12 +1116,50 @@ function initTheme() {
   }
 }
 
+function initSectionVisibility() {
+  if (!homeRoot.value) return
+  if (!('IntersectionObserver' in window)) {
+    modelContentMounted.value = true
+    return
+  }
+
+  sectionObserver = new IntersectionObserver(
+    (entries) => {
+      entries.forEach((entry) => {
+        entry.target.classList.toggle('is-section-visible', entry.isIntersecting)
+        if (entry.isIntersecting && entry.target === modelSection.value) {
+          modelContentMounted.value = true
+        }
+      })
+    },
+    {
+      root: null,
+      rootMargin: '720px 0px',
+      threshold: 0.01
+    }
+  )
+
+  homeRoot.value
+    .querySelectorAll<HTMLElement>('.capability-showcase, .flow-section, .model-section, .trust-section')
+    .forEach((section) => {
+      section.classList.add('is-section-watchable')
+      sectionObserver?.observe(section)
+    })
+}
+
 onMounted(() => {
   initTheme()
+  initSectionVisibility()
   startTerminalTyping()
   updateBrandEcho()
   window.addEventListener('scroll', scheduleBrandEchoUpdate, { passive: true })
   window.addEventListener('resize', scheduleBrandEchoUpdate, { passive: true })
+  window.addEventListener('scroll', invalidateSpotlightLayout, { passive: true })
+  window.addEventListener('resize', invalidateSpotlightLayout, { passive: true })
+  window.addEventListener('scroll', invalidateMatrixLayout, { passive: true })
+  window.addEventListener('resize', invalidateMatrixLayout, { passive: true })
+  window.addEventListener('scroll', invalidateMosaicLayout, { passive: true })
+  window.addEventListener('resize', invalidateMosaicLayout, { passive: true })
   authStore.checkAuth()
   if (!appStore.publicSettingsLoaded) {
     appStore.fetchPublicSettings()
@@ -942,6 +1167,12 @@ onMounted(() => {
 })
 
 onBeforeUnmount(() => {
+  if (pointerFrame) {
+    window.cancelAnimationFrame(pointerFrame)
+  }
+  if (matrixFrame) {
+    window.cancelAnimationFrame(matrixFrame)
+  }
   if (mosaicFrame) {
     window.cancelAnimationFrame(mosaicFrame)
   }
@@ -950,6 +1181,14 @@ onBeforeUnmount(() => {
   }
   window.removeEventListener('scroll', scheduleBrandEchoUpdate)
   window.removeEventListener('resize', scheduleBrandEchoUpdate)
+  window.removeEventListener('scroll', invalidateSpotlightLayout)
+  window.removeEventListener('resize', invalidateSpotlightLayout)
+  window.removeEventListener('scroll', invalidateMatrixLayout)
+  window.removeEventListener('resize', invalidateMatrixLayout)
+  window.removeEventListener('scroll', invalidateMosaicLayout)
+  window.removeEventListener('resize', invalidateMosaicLayout)
+  sectionObserver?.disconnect()
+  sectionObserver = null
   stopTerminalTyping()
   window.clearTimeout(themeSwitchTimer)
   document.documentElement.classList.remove('theme-switching')
@@ -957,6 +1196,24 @@ onBeforeUnmount(() => {
 </script>
 
 <style scoped>
+@property --border-sweep-angle {
+  syntax: '<angle>';
+  inherits: false;
+  initial-value: 90deg;
+}
+
+@property --cell-intensity {
+  syntax: '<number>';
+  inherits: false;
+  initial-value: 0;
+}
+
+@property --cell-delay {
+  syntax: '<time>';
+  inherits: false;
+  initial-value: 0ms;
+}
+
 .home-page {
   --pointer-x: 50%;
   --pointer-y: 42%;
@@ -1678,45 +1935,22 @@ onBeforeUnmount(() => {
   padding: 1px;
   border-radius: inherit;
   background:
-    linear-gradient(
-      90deg,
-      transparent 0%,
-      color-mix(in srgb, var(--feature-tone) 0%, transparent) 24%,
-      color-mix(in srgb, var(--feature-tone) 74%, transparent) 42%,
-      rgba(255, 255, 255, 0.9) 50%,
-      rgba(37, 99, 235, 0.72) 58%,
-      transparent 76%
-    ) top left / 220% 1px no-repeat,
-    linear-gradient(
-      180deg,
-      transparent 0%,
-      color-mix(in srgb, var(--feature-tone) 72%, transparent) 42%,
-      rgba(255, 255, 255, 0.82) 50%,
-      rgba(37, 99, 235, 0.62) 60%,
-      transparent 78%
-    ) top right / 1px 220% no-repeat,
-    linear-gradient(
-      270deg,
-      transparent 0%,
-      rgba(37, 99, 235, 0.58) 36%,
-      rgba(255, 255, 255, 0.78) 48%,
-      color-mix(in srgb, var(--feature-tone) 70%, transparent) 58%,
-      transparent 80%
-    ) bottom right / 220% 1px no-repeat,
-    linear-gradient(
-      0deg,
-      transparent 0%,
-      rgba(37, 99, 235, 0.46) 38%,
-      rgba(255, 255, 255, 0.72) 48%,
-      color-mix(in srgb, var(--feature-tone) 68%, transparent) 60%,
-      transparent 82%
-    ) bottom left / 1px 220% no-repeat,
     radial-gradient(
       190px circle at var(--card-x) var(--card-y),
       rgba(255, 255, 255, 0.9),
       color-mix(in srgb, var(--feature-tone) 62%, transparent) 18%,
       rgba(37, 99, 235, 0.34) 36%,
       transparent 68%
+    ),
+    conic-gradient(
+      from var(--border-sweep-angle, 90deg) at 50% 50%,
+      transparent 0deg,
+      transparent 220deg,
+      color-mix(in srgb, var(--feature-tone) 72%, transparent) 248deg,
+      rgba(255, 255, 255, 0.9) 266deg,
+      rgba(37, 99, 235, 0.68) 284deg,
+      transparent 316deg,
+      transparent 360deg
     );
   opacity: var(--beam-alpha);
   pointer-events: none;
@@ -1730,6 +1964,7 @@ onBeforeUnmount(() => {
   mask-composite: exclude;
   animation: border-sweep 6.8s cubic-bezier(0.45, 0, 0.2, 1) infinite;
   animation-delay: var(--beam-phase);
+  animation-play-state: paused;
   transition:
     opacity 0.62s cubic-bezier(0.22, 1, 0.36, 1) var(--beam-delay),
     filter 0.62s cubic-bezier(0.22, 1, 0.36, 1) var(--beam-delay);
@@ -1766,6 +2001,10 @@ onBeforeUnmount(() => {
   --beam-alpha: 0.92;
   --beam-soft: 0.46;
   --beam-delay: 0ms;
+}
+
+.aurora-card:hover::before {
+  animation-play-state: running;
 }
 
 .dark .aurora-card {
@@ -1946,10 +2185,16 @@ onBeforeUnmount(() => {
 }
 
 .matrix-cell {
+  --cell-intensity: 0;
   position: relative;
   border-right: 1px solid rgba(20, 184, 166, 0.06);
   border-bottom: 1px solid rgba(20, 184, 166, 0.06);
   background:
+    linear-gradient(
+      160deg,
+      rgb(255 255 255 / calc(var(--cell-intensity) * 0.22)),
+      transparent 54%
+    ),
     linear-gradient(
       135deg,
       rgb(20 184 166 / calc(var(--cell-intensity) * 0.32)),
@@ -1966,17 +2211,8 @@ onBeforeUnmount(() => {
 }
 
 .matrix-cell::after {
-  content: '';
-  position: absolute;
-  inset: 1px;
-  border-radius: 2px;
-  background:
-    linear-gradient(
-      160deg,
-      rgb(255 255 255 / calc(var(--cell-intensity) * 0.22)),
-      transparent 54%
-    );
-  opacity: calc(var(--cell-intensity) * 0.85);
+  content: none;
+  display: none;
 }
 
 .map-layers.is-matrix-active .matrix-cell {
@@ -2090,6 +2326,7 @@ onBeforeUnmount(() => {
   background: #fff;
   box-shadow: 0 0 18px rgba(20, 184, 166, 0.9);
   animation: beam-run 2.8s linear infinite;
+  will-change: left, opacity;
 }
 
 .beam-1 {
@@ -2330,6 +2567,21 @@ onBeforeUnmount(() => {
   padding: 54px 24px;
 }
 
+.flow-section,
+.model-section,
+.trust-section {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 480px;
+}
+
+.section-block.is-section-watchable:not(.is-section-visible) *,
+.section-block.is-section-watchable:not(.is-section-visible)::before,
+.section-block.is-section-watchable:not(.is-section-visible)::after,
+.section-block.is-section-watchable:not(.is-section-visible) *::before,
+.section-block.is-section-watchable:not(.is-section-visible) *::after {
+  animation-play-state: paused !important;
+}
+
 .section-heading {
   max-width: 620px;
   margin: 0 auto 28px;
@@ -2422,6 +2674,7 @@ onBeforeUnmount(() => {
     linear-gradient(180deg, transparent 0%, rgba(37, 99, 235, 0.34) 34%, rgba(20, 184, 166, 0.46) 50%, transparent 78%) 100% 0 / 1px 240% repeat-y;
   opacity: 0;
   animation: shared-border-flow 8.8s cubic-bezier(0.45, 0, 0.2, 1) infinite;
+  animation-play-state: paused;
   mask-image: radial-gradient(
     380px circle at var(--mosaic-x) var(--mosaic-y),
     #000 0%,
@@ -2438,6 +2691,7 @@ onBeforeUnmount(() => {
 
 .feature-mosaic.is-mosaic-active::after {
   opacity: 1;
+  animation-play-state: running;
 }
 
 .feature-card {
@@ -3037,6 +3291,10 @@ onBeforeUnmount(() => {
   mask-image: linear-gradient(90deg, transparent, #000 9%, #000 91%, transparent);
 }
 
+.model-lazy-spacer {
+  min-height: 266px;
+}
+
 .partner-track {
   display: flex;
   width: max-content;
@@ -3450,44 +3708,10 @@ onBeforeUnmount(() => {
 
 @keyframes border-sweep {
   0% {
-    background-position:
-      210% 0,
-      100% 210%,
-      -110% 100%,
-      0 -110%,
-      50% 50%;
-  }
-  18% {
-    background-position:
-      120% 0,
-      100% 132%,
-      -38% 100%,
-      0 -46%,
-      50% 50%;
-  }
-  42% {
-    background-position:
-      12% 0,
-      100% 44%,
-      62% 100%,
-      0 32%,
-      50% 50%;
-  }
-  68% {
-    background-position:
-      -82% 0,
-      100% -42%,
-      154% 100%,
-      0 116%,
-      50% 50%;
+    --border-sweep-angle: 90deg;
   }
   100% {
-    background-position:
-      -210% 0,
-      100% -110%,
-      250% 100%,
-      0 210%,
-      50% 50%;
+    --border-sweep-angle: 450deg;
   }
 }
 
@@ -3546,10 +3770,10 @@ onBeforeUnmount(() => {
 @keyframes model-float {
   0%,
   100% {
-    margin-top: 0;
+    translate: 0 0;
   }
   50% {
-    margin-top: -8px;
+    translate: 0 -8px;
   }
 }
 
@@ -3594,11 +3818,11 @@ onBeforeUnmount(() => {
 @keyframes badge-pulse {
   0%,
   100% {
-    box-shadow: 0 0 0 rgba(20, 184, 166, 0);
+    opacity: 0.78;
     transform: translateY(0);
   }
   50% {
-    box-shadow: 0 14px 30px rgba(20, 184, 166, 0.16);
+    opacity: 1;
     transform: translateY(-3px);
   }
 }
@@ -3616,8 +3840,11 @@ onBeforeUnmount(() => {
 }
 
 @keyframes partner-marquee {
+  from {
+    transform: translate3d(0, 0, 0);
+  }
   to {
-    transform: translateX(-50%);
+    transform: translate3d(-50%, 0, 0);
   }
 }
 
@@ -3759,6 +3986,7 @@ onBeforeUnmount(() => {
 
 .feature-mosaic::after {
   opacity: 0 !important;
+  animation-play-state: paused !important;
 }
 
 .feature-visual {
@@ -4182,7 +4410,7 @@ onBeforeUnmount(() => {
   background:
     radial-gradient(circle at var(--card-x, 50%) var(--card-y, 42%), color-mix(in srgb, var(--feature-tone, #14b8a6) 8%, transparent), transparent 42%),
     radial-gradient(circle at 18% 0%, rgba(255, 255, 255, 0.26), transparent 36%),
-    linear-gradient(180deg, rgba(255, 255, 255, 0.14), rgba(255, 255, 255, 0.035)),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.25), rgba(255, 255, 255, 0.035)),
     rgba(255, 255, 255, 0.085);
 }
 
@@ -4532,7 +4760,6 @@ onBeforeUnmount(() => {
 }
 
 .feature-card {
-  will-change: transform;
   contain: paint;
 }
 
@@ -4564,6 +4791,7 @@ onBeforeUnmount(() => {
 
 .feature-mosaic.is-mosaic-active::after {
   opacity: 0 !important;
+  animation-play-state: paused !important;
 }
 
 .feature-mosaic.is-mosaic-active::before {
@@ -4621,6 +4849,88 @@ onBeforeUnmount(() => {
   color: #14b8a6;
   filter: drop-shadow(0 10px 18px rgba(20, 184, 166, 0.2));
   transform: translateX(2px);
+}
+
+/* Runtime performance pass: keep the glass language, but reserve expensive blur/filter work for fewer surfaces. */
+.home-nav,
+.spotlight-card,
+.feature-card,
+.flow-panel,
+.trust-card,
+.partner-item,
+.floating-ticket,
+.footer-inner {
+  contain: layout paint style;
+}
+
+.feature-card,
+.flow-panel,
+.trust-card,
+.partner-item,
+.floating-ticket,
+.footer-inner {
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+.feature-card::after,
+.flow-panel::after,
+.trust-card::after {
+  inset: -18%;
+  background:
+    radial-gradient(ellipse at 50% 48%, color-mix(in srgb, var(--feature-tone, #14b8a6) 11%, transparent), transparent 56%),
+    radial-gradient(circle at 68% 28%, rgba(37, 99, 235, 0.06), transparent 42%);
+  filter: none;
+  opacity: 0.58;
+}
+
+.dark .feature-card::after,
+.dark .flow-panel::after,
+.dark .trust-card::after {
+  opacity: 0.66;
+}
+
+.feature-card:hover::after,
+.flow-panel:hover::after,
+.trust-card:hover::after {
+  opacity: 0.82;
+}
+
+.feature-visual::before,
+.global-visual::before,
+.partner-item::after,
+.model-aggregation::before,
+.model-aggregation::after {
+  filter: none;
+}
+
+.model-aggregation::before,
+.model-aggregation::after {
+  background:
+    radial-gradient(circle at 50% 50%, color-mix(in srgb, var(--feature-tone) 12%, transparent), transparent 42%),
+    conic-gradient(from 120deg, transparent, color-mix(in srgb, var(--feature-tone) 10%, transparent), transparent 34%, rgba(37, 99, 235, 0.06), transparent 68%);
+}
+
+.model-node,
+.hub:not(.brand-core-node),
+.guard-visual span,
+.partner-logo,
+.provider-mark {
+  filter: none;
+}
+
+.model-node :deep(.brand-icon),
+.model-node :deep(.model-icon),
+.partner-logo :deep(.brand-icon),
+.provider-mark :deep(.brand-icon),
+.guard-visual span svg,
+.hub :deep(.brand-icon) {
+  filter: none;
+}
+
+.partner-track {
+  transform: translateZ(0);
+  will-change: transform;
 }
 
 @media (max-width: 1040px) {
@@ -4810,6 +5120,10 @@ onBeforeUnmount(() => {
     mask-image: none;
   }
 
+  .model-lazy-spacer {
+    min-height: 220px;
+  }
+
   .partner-fade {
     display: none;
   }
@@ -4863,6 +5177,10 @@ onBeforeUnmount(() => {
   .partner-logo {
     width: 46px;
     height: 46px;
+  }
+
+  .model-lazy-spacer {
+    min-height: 196px;
   }
 
   .model-strip > span {
