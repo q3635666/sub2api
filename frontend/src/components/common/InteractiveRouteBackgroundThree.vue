@@ -21,6 +21,7 @@
 <script setup lang="ts">
 import { onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import * as THREE from 'three'
+import { publicSiteConfig } from '../../../public-site.config'
 
 const props = withDefaults(defineProps<{
   isDark: boolean
@@ -38,6 +39,30 @@ type BackgroundUniforms = {
   uBoost: { value: number }
   uPixelRatio: { value: number }
   uSubtle: { value: number }
+  uLightSceneTuning: { value: THREE.Vector4 }
+  uDarkSceneTuning: { value: THREE.Vector4 }
+  uLightEffectTuning: { value: THREE.Vector4 }
+  uDarkEffectTuning: { value: THREE.Vector4 }
+}
+
+const threeBackgroundConfig = publicSiteConfig.background.three
+
+function createSceneTuningVector(theme: typeof threeBackgroundConfig.light) {
+  return new THREE.Vector4(
+    theme.backgroundDepth,
+    theme.auroraIntensity,
+    theme.gridIntensity,
+    theme.perspectiveGridIntensity
+  )
+}
+
+function createEffectTuningVector(theme: typeof threeBackgroundConfig.light) {
+  return new THREE.Vector4(
+    theme.pointerGlowIntensity,
+    theme.particleOpacity,
+    theme.particleSize,
+    theme.vignetteStrength
+  )
 }
 
 const mountRef = ref<HTMLDivElement | null>(null)
@@ -98,6 +123,10 @@ const backgroundFragmentShader = `
   uniform float uPointerStrength;
   uniform float uBoost;
   uniform float uSubtle;
+  uniform vec4 uLightSceneTuning;
+  uniform vec4 uDarkSceneTuning;
+  uniform vec4 uLightEffectTuning;
+  uniform vec4 uDarkEffectTuning;
   varying vec2 vUv;
 
   float hash(vec2 p) {
@@ -157,16 +186,25 @@ const backgroundFragmentShader = `
     vec3 bgA = mix(lightA, darkA, uTheme);
     vec3 bgB = mix(lightB, darkB, uTheme);
     vec3 bgC = mix(lightC, darkC, uTheme);
+    vec4 sceneTuning = mix(uLightSceneTuning, uDarkSceneTuning, uTheme);
+    vec4 effectTuning = mix(uLightEffectTuning, uDarkEffectTuning, uTheme);
+    float backgroundDepth = sceneTuning.x;
+    float auroraIntensity = sceneTuning.y;
+    float gridIntensity = sceneTuning.z;
+    float perspectiveGridIntensity = sceneTuning.w;
+    float pointerGlowIntensity = effectTuning.x;
+    float vignetteStrength = effectTuning.w;
 
     vec3 color = mix(bgA, bgB, smoothstep(0.0, 0.76, uv.y));
     color = mix(color, bgC, smoothstep(0.28, 1.0, uv.x + uv.y * 0.28));
+    color = mix(bgA, color, backgroundDepth);
 
     vec2 drift = vec2(sin(uTime * 0.13) * 0.045, cos(uTime * 0.11) * 0.032);
     float field = fbm(vec2(uv.x * aspect, uv.y) * 2.1 + drift + uTime * 0.018);
     float aurora = smoothstep(0.18, 0.94, field);
     vec3 auroraColor = mix(tertiary, secondary, field);
-    color = mix(color, auroraColor, aurora * (1.0 - uTheme) * 0.11 * subtleScale);
-    color += auroraColor * aurora * uTheme * 0.062 * subtleScale;
+    color = mix(color, auroraColor, aurora * (1.0 - uTheme) * 0.11 * auroraIntensity * subtleScale);
+    color += auroraColor * aurora * uTheme * 0.062 * auroraIntensity * subtleScale;
 
     vec2 gridUv = vec2(uv.x * aspect, uv.y);
     vec2 depthPivot = vec2(0.5 + pointerParallax.x * 0.035, 0.46 + pointerParallax.y * 0.026);
@@ -185,7 +223,7 @@ const backgroundFragmentShader = `
     float softGrid = gridLine(farGridUv, 12.0, 0.012);
     float broken = step(0.64, hash(floor(gridUv * 34.0) + floor(uTime * 1.4)));
     float depthPlane = smoothstep(0.18, 0.94, uv.y + pointerParallax.y * 0.12);
-    float depthShadow = softGrid * (1.0 - depthPlane) * (0.018 + uTheme * 0.022) * subtleScale;
+    float depthShadow = softGrid * (1.0 - depthPlane) * (0.018 + uTheme * 0.022) * gridIntensity * subtleScale;
     float perspectiveDepth = smoothstep(0.24, 1.0, uv.y);
     float perspectiveScale = 1.0 / max(0.22, 1.18 - uv.y * 0.92);
     vec2 floorUv = vec2((uv.x - 0.5) * aspect * perspectiveScale, (uv.y + 0.24) * perspectiveScale);
@@ -195,17 +233,17 @@ const backgroundFragmentShader = `
     );
     float floorGrid = gridLine(floorUv, 8.0 + perspectiveDepth * 10.0, 0.011);
     float floorMask = perspectiveDepth * (0.48 + pointerGlow * 0.18);
-    float matrixWake = fineGrid * pointerGlow * broken * (0.26 + uPointerStrength * 0.7);
-    color = mix(color, primary, fineGrid * (1.0 - uTheme) * 0.09 * subtleScale);
-    color = mix(color, secondary, softGrid * (1.0 - uTheme) * 0.052 * subtleScale);
-    color += primary * fineGrid * uTheme * (0.023 + depthPlane * 0.012) * subtleScale;
-    color += secondary * softGrid * uTheme * (0.012 + (1.0 - depthPlane) * 0.012) * subtleScale;
-    color = mix(color, mix(primary, secondary, perspectiveDepth), floorGrid * floorMask * (1.0 - uTheme) * 0.075 * subtleScale);
-    color += mix(primary, secondary, perspectiveDepth) * floorGrid * floorMask * uTheme * 0.035 * subtleScale;
+    float matrixWake = fineGrid * pointerGlow * broken * (0.26 + uPointerStrength * 0.7) * pointerGlowIntensity;
+    color = mix(color, primary, fineGrid * (1.0 - uTheme) * 0.09 * gridIntensity * subtleScale);
+    color = mix(color, secondary, softGrid * (1.0 - uTheme) * 0.052 * gridIntensity * subtleScale);
+    color += primary * fineGrid * uTheme * (0.023 + depthPlane * 0.012) * gridIntensity * subtleScale;
+    color += secondary * softGrid * uTheme * (0.012 + (1.0 - depthPlane) * 0.012) * gridIntensity * subtleScale;
+    color = mix(color, mix(primary, secondary, perspectiveDepth), floorGrid * floorMask * (1.0 - uTheme) * 0.075 * perspectiveGridIntensity * subtleScale);
+    color += mix(primary, secondary, perspectiveDepth) * floorGrid * floorMask * uTheme * 0.035 * perspectiveGridIntensity * subtleScale;
     vec3 depthColor = mix(secondary, primary, smoothstep(0.0, 1.0, uv.y + pointerGlow * 0.14));
-    color = mix(color, depthColor, depthField * (1.0 - uTheme) * 0.052 * subtleScale);
-    color += depthColor * depthField * uTheme * 0.024 * subtleScale;
-    color += mix(primary, secondary, pointerGlow) * liftedGrid * pointerGlow * (0.025 + uPointerStrength * 0.035) * subtleScale;
+    color = mix(color, depthColor, depthField * (1.0 - uTheme) * 0.052 * perspectiveGridIntensity * subtleScale);
+    color += depthColor * depthField * uTheme * 0.024 * perspectiveGridIntensity * subtleScale;
+    color += mix(primary, secondary, pointerGlow) * liftedGrid * pointerGlow * (0.025 + uPointerStrength * 0.035) * gridIntensity * pointerGlowIntensity * subtleScale;
     color = mix(color, bgA, depthShadow);
 
     vec3 wakeColor = mix(primary, tertiary, field);
@@ -218,23 +256,23 @@ const backgroundFragmentShader = `
     float ring = abs(sin(ringDistance * 18.0 - uTime * 0.76));
     float ringMask = smoothstep(0.97, 1.0, ring) * smoothstep(1.42, 0.1, ringDistance);
     vec3 ringColor = mix(primary, secondary, uv.x);
-    color = mix(color, ringColor, ringMask * (1.0 - uTheme) * (0.09 + uPointerStrength * 0.042) * subtleScale);
-    color += ringColor * ringMask * uTheme * (0.015 + uPointerStrength * 0.012) * subtleScale;
+    color = mix(color, ringColor, ringMask * (1.0 - uTheme) * (0.09 + uPointerStrength * 0.042) * pointerGlowIntensity * subtleScale);
+    color += ringColor * ringMask * uTheme * (0.015 + uPointerStrength * 0.012) * pointerGlowIntensity * subtleScale;
 
     float beam = smoothstep(0.9, 0.1, abs(uv.y - 0.18 - sin(uv.x * 8.0 + uTime * 0.65) * 0.018));
     vec3 beamColor = mix(primary, secondary, uv.x);
-    color = mix(color, beamColor, beam * (1.0 - uTheme) * 0.052 * subtleScale);
-    color += beamColor * beam * uTheme * 0.012 * subtleScale;
+    color = mix(color, beamColor, beam * (1.0 - uTheme) * 0.052 * pointerGlowIntensity * subtleScale);
+    color += beamColor * beam * uTheme * 0.012 * pointerGlowIntensity * subtleScale;
 
-    color = mix(color, primary, pointerGlow * (1.0 - uTheme) * (0.12 + uPointerStrength * 0.16) * subtleScale);
-    color = mix(color, secondary, pointerCore * (1.0 - uTheme) * (0.06 + uBoost * 0.09) * subtleScale);
-    color += primary * pointerGlow * uTheme * (0.024 + uPointerStrength * 0.05) * subtleScale;
-    color += secondary * pointerCore * uTheme * (0.012 + uBoost * 0.026) * subtleScale;
+    color = mix(color, primary, pointerGlow * (1.0 - uTheme) * (0.12 + uPointerStrength * 0.16) * pointerGlowIntensity * subtleScale);
+    color = mix(color, secondary, pointerCore * (1.0 - uTheme) * (0.06 + uBoost * 0.09) * pointerGlowIntensity * subtleScale);
+    color += primary * pointerGlow * uTheme * (0.024 + uPointerStrength * 0.05) * pointerGlowIntensity * subtleScale;
+    color += secondary * pointerCore * uTheme * (0.012 + uBoost * 0.026) * pointerGlowIntensity * subtleScale;
 
     float grain = hash(gl_FragCoord.xy + floor(uTime * 24.0));
     color += (grain - 0.5) * mix(0.018, 0.014, uTheme);
 
-    float vignette = smoothstep(0.95, 0.2, length((uv - 0.5) * vec2(aspect * 0.62, 0.85)));
+    float vignette = smoothstep(0.95, 0.2, length((uv - 0.5) * vec2(aspect * 0.62, 0.85)) * vignetteStrength);
     color = mix(mix(color, bgA, 0.12), color, vignette);
 
     gl_FragColor = vec4(color, 1.0);
@@ -255,6 +293,8 @@ const particleVertexShader = `
   uniform float uPointerStrength;
   uniform float uPixelRatio;
   uniform float uSubtle;
+  uniform vec4 uLightEffectTuning;
+  uniform vec4 uDarkEffectTuning;
   varying float vAlpha;
   varying float vTone;
   varying float vForce;
@@ -263,6 +303,9 @@ const particleVertexShader = `
   void main() {
     float aspect = uResolution.x / max(uResolution.y, 1.0);
     vec2 pointerNdc = vec2(uPointer.x * 2.0 - 1.0, (1.0 - uPointer.y) * 2.0 - 1.0);
+    vec4 effectTuning = mix(uLightEffectTuning, uDarkEffectTuning, uTheme);
+    float particleOpacity = effectTuning.y;
+    float particleSize = effectTuning.z;
     vec2 pos = position.xy;
     float depthCurve = pow(aDepth, 1.32);
     float depthScale = mix(0.78, 1.34, depthCurve);
@@ -280,8 +323,8 @@ const particleVertexShader = `
 
     float nearPulse = smoothstep(0.62, 1.0, aDepth);
     gl_Position = vec4(pos * (1.0 + force * 0.018 + nearPulse * 0.012), 0.0, 1.0);
-    gl_PointSize = aSize * uPixelRatio * (0.72 + depthCurve * 3.08 + force * 2.55) * mix(1.06, 0.94, uTheme) * mix(1.0, 0.74, uSubtle);
-    vAlpha = (0.18 + depthCurve * 0.76 + force * 0.52) * mix(0.46, 0.66, uTheme) * mix(1.0, 0.72, uSubtle);
+    gl_PointSize = aSize * uPixelRatio * (0.72 + depthCurve * 3.08 + force * 2.55) * particleSize * mix(1.06, 0.94, uTheme) * mix(1.0, 0.74, uSubtle);
+    vAlpha = (0.18 + depthCurve * 0.76 + force * 0.52) * particleOpacity * mix(0.46, 0.66, uTheme) * mix(1.0, 0.72, uSubtle);
     vTone = aTone;
     vForce = force;
     vDepth = aDepth;
@@ -340,7 +383,11 @@ function createUniforms(): BackgroundUniforms {
     uPointerStrength: { value: 0 },
     uBoost: { value: 0 },
     uPixelRatio: { value: dpr },
-    uSubtle: { value: props.subtle ? 1 : 0 }
+    uSubtle: { value: props.subtle ? 1 : 0 },
+    uLightSceneTuning: { value: createSceneTuningVector(threeBackgroundConfig.light) },
+    uDarkSceneTuning: { value: createSceneTuningVector(threeBackgroundConfig.dark) },
+    uLightEffectTuning: { value: createEffectTuningVector(threeBackgroundConfig.light) },
+    uDarkEffectTuning: { value: createEffectTuningVector(threeBackgroundConfig.dark) }
   }
 }
 

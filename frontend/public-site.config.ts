@@ -75,6 +75,17 @@ type FeatureCardConfig = {
   featured?: boolean
 }
 
+type ThreeBackgroundThemeTuning = {
+  backgroundDepth: number
+  auroraIntensity: number
+  gridIntensity: number
+  perspectiveGridIntensity: number
+  pointerGlowIntensity: number
+  particleOpacity: number
+  particleSize: number
+  vignetteStrength: number
+}
+
 type PublicSiteConfig = {
   background: {
     /**
@@ -83,6 +94,22 @@ type PublicSiteConfig = {
      * - canvas：之前的 Canvas 版本，方便快速回退对比。
      */
     renderer: BackgroundRenderer
+
+    /**
+     * Three.js 背景深浅配置。
+     *
+     * 这里只控制视觉强度，不会改变接口、路由或业务逻辑。
+     * 所有数值建议从 0.6 到 1.4 之间微调：
+     * - 1：保持当前默认效果。
+     * - 小于 1：更淡、更轻、更不抢内容。
+     * - 大于 1：更深、更明显、更有沉浸感。
+     *
+     * light / dark 分别对应浅色主题和深色主题，互不影响。
+     */
+    three: {
+      light: ThreeBackgroundThemeTuning
+      dark: ThreeBackgroundThemeTuning
+    }
   }
 
   supportMascot: {
@@ -196,7 +223,51 @@ type PublicSiteConfig = {
 
 export const publicSiteConfig: PublicSiteConfig = {
   background: {
-    renderer: 'three'
+    renderer: 'three',
+
+    three: {
+      /**
+       * 浅色主题背景深浅。
+       *
+       * backgroundDepth：背景底色层次强度。调低会更接近纯浅底，调高会更显淡青/淡蓝层次。
+       * auroraIntensity：背景柔光/雾光强度。调低更干净，调高更梦幻。
+       * gridIntensity：普通网格和矩阵响应强度。调低网格更隐，调高科技感更强。
+       * perspectiveGridIntensity：透视网格/空间深度线强度。调高会更有 3D 纵深。
+       * pointerGlowIntensity：鼠标附近高亮和联动光感强度。调低更安静，调高交互更明显。
+       * particleOpacity：粒子整体亮度。调低粒子更隐，调高粒子更清楚。
+       * particleSize：粒子整体大小。调低更细腻，调高更有存在感。
+       * vignetteStrength：边缘收暗/聚焦强度。调高中心更聚焦，边缘更有包裹感。
+       */
+      light: {
+        backgroundDepth: 1,
+        auroraIntensity: 1,
+        gridIntensity: 1,
+        perspectiveGridIntensity: 1,
+        pointerGlowIntensity: 1,
+        particleOpacity: 0.8,
+        particleSize: 1,
+        vignetteStrength: 1
+      },
+
+      /**
+       * 深色主题背景深浅。
+       *
+       * 如果深色模式太亮：优先降低 auroraIntensity、particleOpacity、gridIntensity。
+       * 如果深色模式太空：优先提高 particleOpacity、perspectiveGridIntensity。
+       * 如果鼠标互动太弱：提高 pointerGlowIntensity。
+       * 如果画面太散：提高 vignetteStrength。
+       */
+      dark: {
+        backgroundDepth: 1,
+        auroraIntensity: 1,
+        gridIntensity: 1,
+        perspectiveGridIntensity: 1,
+        pointerGlowIntensity: 1,
+        particleOpacity: 1.5,
+        particleSize: 1,
+        vignetteStrength: 1
+      }
+    }
   },
 
   supportMascot: {
