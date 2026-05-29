@@ -83,6 +83,10 @@ type ThreeBackgroundThemeTuning = {
   pointerGlowIntensity: number
   particleOpacity: number
   particleSize: number
+  orbitRingIntensity: number
+  orbitRingDensity: number
+  orbitRingSpeed: number
+  orbitRingWidth: number
   vignetteStrength: number
 }
 
@@ -312,6 +316,10 @@ export const publicSiteConfig: PublicSiteConfig = {
        * pointerGlowIntensity：鼠标附近高亮和联动光感强度。调低更安静，调高交互更明显。
        * particleOpacity：粒子整体亮度。调低粒子更隐，调高粒子更清楚。
        * particleSize：粒子整体大小。调低更细腻，调高更有存在感。
+       * orbitRingIntensity：太阳系轨道圈整体强度。0 = 关闭，1 = 当前默认效果，调高更明显。
+       * orbitRingDensity：太阳系轨道圈数量/密度。调低圈更少更松，调高圈更多更密。
+       * orbitRingSpeed：太阳系轨道圈流动速度。0 = 静止，1 = 当前默认速度。
+       * orbitRingWidth：太阳系轨道圈线条宽度/柔和度。调低更细，调高更厚更柔。
        * vignetteStrength：边缘收暗/聚焦强度。调高中心更聚焦，边缘更有包裹感。
        */
       light: {
@@ -322,6 +330,10 @@ export const publicSiteConfig: PublicSiteConfig = {
         pointerGlowIntensity: 1,
         particleOpacity: 0.8,
         particleSize: 1,
+        orbitRingIntensity: 1,
+        orbitRingDensity: 1,
+        orbitRingSpeed: 1,
+        orbitRingWidth: 1,
         vignetteStrength: 1
       },
 
@@ -331,6 +343,8 @@ export const publicSiteConfig: PublicSiteConfig = {
        * 如果深色模式太亮：优先降低 auroraIntensity、particleOpacity、gridIntensity。
        * 如果深色模式太空：优先提高 particleOpacity、perspectiveGridIntensity。
        * 如果鼠标互动太弱：提高 pointerGlowIntensity。
+       * 如果太阳系轨道圈太明显：降低 orbitRingIntensity；不想要就设为 0。
+       * 如果太阳系轨道圈太密：降低 orbitRingDensity。
        * 如果画面太散：提高 vignetteStrength。
        */
       dark: {
@@ -341,6 +355,10 @@ export const publicSiteConfig: PublicSiteConfig = {
         pointerGlowIntensity: 1,
         particleOpacity: 1.5,
         particleSize: 1,
+        orbitRingIntensity: 2,
+        orbitRingDensity: 1,
+        orbitRingSpeed: 1,
+        orbitRingWidth: 1,
         vignetteStrength: 1
       }
     }
@@ -352,18 +370,23 @@ export const publicSiteConfig: PublicSiteConfig = {
     // renderer: 'live2d',
     // live2dModelPath: 'https://model.oml2d.com/HK416-1-normal/model.json',
     loadDelayMs: 450,
-    mountDelayMs: 3200,
+    mountDelayMs: 2200,
     idleTimeoutMs: 2600,
     timeoutMs: 3200,
     speechInitialDelayMs: 900,
-    speechIntervalMs: 8200,
-    speechDisplayMs: 5200,
+    speechIntervalMs: 2500,
+    speechDisplayMs: 5000,
     speechMessages: [
       { i18nKey: 'support.mascotMessages.contact' },
       { i18nKey: 'support.mascotMessages.compatibility' },
       { i18nKey: 'support.mascotMessages.routing' },
       { i18nKey: 'support.mascotMessages.billing' },
-      { i18nKey: 'support.mascotMessages.guard' }
+      { i18nKey: 'support.mascotMessages.guard' },
+      { i18nKey: 'support.mascotMessages.stableEntry' },
+      { i18nKey: 'support.mascotMessages.unifiedPath' },
+      { i18nKey: 'support.mascotMessages.fallback' },
+      { i18nKey: 'support.mascotMessages.costClarity' },
+      { i18nKey: 'support.mascotMessages.subscriptionApi' }
     ]
   },
 

@@ -236,7 +236,12 @@ export default {
       compatibility: 'A good API gateway makes complexity feel quiet.',
       routing: 'Multi-model routing matters most when every request arrives safely.',
       billing: 'Every call should be clear, traceable, and easy to understand.',
-      guard: 'Let the system hold pools, sessions, and guardrails while you build.'
+      guard: 'Let the system hold pools, sessions, and guardrails while you build.',
+      stableEntry: 'A stable entrance gives choice back to developers.',
+      unifiedPath: 'Models can be many; the calling path should stay singular.',
+      fallback: 'Good routing is not showmanship; it gives every request a fallback.',
+      costClarity: 'Clear balance, rates, and records make team work calmer.',
+      subscriptionApi: 'Turn subscriptions into APIs, so ideas do not wait on setup.'
     },
     items: {
       telegram: 'Telegram support',

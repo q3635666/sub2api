@@ -43,6 +43,8 @@ type BackgroundUniforms = {
   uDarkSceneTuning: { value: THREE.Vector4 }
   uLightEffectTuning: { value: THREE.Vector4 }
   uDarkEffectTuning: { value: THREE.Vector4 }
+  uLightOrbitTuning: { value: THREE.Vector4 }
+  uDarkOrbitTuning: { value: THREE.Vector4 }
 }
 
 const threeBackgroundConfig = publicSiteConfig.background.three
@@ -62,6 +64,15 @@ function createEffectTuningVector(theme: typeof threeBackgroundConfig.light) {
     theme.particleOpacity,
     theme.particleSize,
     theme.vignetteStrength
+  )
+}
+
+function createOrbitTuningVector(theme: typeof threeBackgroundConfig.light) {
+  return new THREE.Vector4(
+    theme.orbitRingIntensity,
+    theme.orbitRingDensity,
+    theme.orbitRingSpeed,
+    theme.orbitRingWidth
   )
 }
 
@@ -127,6 +138,8 @@ const backgroundFragmentShader = `
   uniform vec4 uDarkSceneTuning;
   uniform vec4 uLightEffectTuning;
   uniform vec4 uDarkEffectTuning;
+  uniform vec4 uLightOrbitTuning;
+  uniform vec4 uDarkOrbitTuning;
   varying vec2 vUv;
 
   float hash(vec2 p) {
@@ -188,12 +201,17 @@ const backgroundFragmentShader = `
     vec3 bgC = mix(lightC, darkC, uTheme);
     vec4 sceneTuning = mix(uLightSceneTuning, uDarkSceneTuning, uTheme);
     vec4 effectTuning = mix(uLightEffectTuning, uDarkEffectTuning, uTheme);
+    vec4 orbitTuning = mix(uLightOrbitTuning, uDarkOrbitTuning, uTheme);
     float backgroundDepth = sceneTuning.x;
     float auroraIntensity = sceneTuning.y;
     float gridIntensity = sceneTuning.z;
     float perspectiveGridIntensity = sceneTuning.w;
     float pointerGlowIntensity = effectTuning.x;
     float vignetteStrength = effectTuning.w;
+    float orbitRingIntensity = max(0.0, orbitTuning.x);
+    float orbitRingDensity = max(0.05, orbitTuning.y);
+    float orbitRingSpeed = orbitTuning.z;
+    float orbitRingWidth = max(0.0, orbitTuning.w);
 
     vec3 color = mix(bgA, bgB, smoothstep(0.0, 0.76, uv.y));
     color = mix(color, bgC, smoothstep(0.28, 1.0, uv.x + uv.y * 0.28));
@@ -253,11 +271,12 @@ const backgroundFragmentShader = `
     vec2 center = vec2(0.5 + (uPointer.x - 0.5) * 0.075, 0.48 - (uPointer.y - 0.5) * 0.052);
     vec2 ringSpace = (uv - center) * vec2(aspect * (0.73 + pointerGlow * 0.06), 4.2);
     float ringDistance = length(ringSpace);
-    float ring = abs(sin(ringDistance * 18.0 - uTime * 0.76));
-    float ringMask = smoothstep(0.97, 1.0, ring) * smoothstep(1.42, 0.1, ringDistance);
+    float ring = abs(sin(ringDistance * 18.0 * orbitRingDensity - uTime * 0.76 * orbitRingSpeed));
+    float ringEdge = clamp(1.0 - 0.03 * orbitRingWidth, 0.84, 0.995);
+    float ringMask = smoothstep(ringEdge, 1.0, ring) * smoothstep(1.42, 0.1, ringDistance);
     vec3 ringColor = mix(primary, secondary, uv.x);
-    color = mix(color, ringColor, ringMask * (1.0 - uTheme) * (0.09 + uPointerStrength * 0.042) * pointerGlowIntensity * subtleScale);
-    color += ringColor * ringMask * uTheme * (0.015 + uPointerStrength * 0.012) * pointerGlowIntensity * subtleScale;
+    color = mix(color, ringColor, ringMask * (1.0 - uTheme) * (0.09 + uPointerStrength * 0.042) * pointerGlowIntensity * orbitRingIntensity * subtleScale);
+    color += ringColor * ringMask * uTheme * (0.015 + uPointerStrength * 0.012) * pointerGlowIntensity * orbitRingIntensity * subtleScale;
 
     float beam = smoothstep(0.9, 0.1, abs(uv.y - 0.18 - sin(uv.x * 8.0 + uTime * 0.65) * 0.018));
     vec3 beamColor = mix(primary, secondary, uv.x);
@@ -387,7 +406,9 @@ function createUniforms(): BackgroundUniforms {
     uLightSceneTuning: { value: createSceneTuningVector(threeBackgroundConfig.light) },
     uDarkSceneTuning: { value: createSceneTuningVector(threeBackgroundConfig.dark) },
     uLightEffectTuning: { value: createEffectTuningVector(threeBackgroundConfig.light) },
-    uDarkEffectTuning: { value: createEffectTuningVector(threeBackgroundConfig.dark) }
+    uDarkEffectTuning: { value: createEffectTuningVector(threeBackgroundConfig.dark) },
+    uLightOrbitTuning: { value: createOrbitTuningVector(threeBackgroundConfig.light) },
+    uDarkOrbitTuning: { value: createOrbitTuningVector(threeBackgroundConfig.dark) }
   }
 }
 

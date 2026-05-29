@@ -236,7 +236,12 @@ export default {
       compatibility: '好的 API 入口，应该让复杂安静下来。',
       routing: '多模型聚合，真正重要的是稳定抵达。',
       billing: '每一次调用都应清楚、透明、可追踪。',
-      guard: '把账号池、会话和风控交给系统，把注意力留给产品。'
+      guard: '把账号池、会话和风控交给系统，把注意力留给产品。',
+      stableEntry: '一个稳定入口，是把选择权还给开发者。',
+      unifiedPath: '模型可以很多，调用路径最好只有一条。',
+      fallback: '好的调度不是炫技，是让每次请求都有退路。',
+      costClarity: '余额、倍率和记录清楚，团队协作才轻松。',
+      subscriptionApi: '把订阅能力变成 API，让灵感不用等配置。'
     },
     items: {
       telegram: 'Telegram 客服',
