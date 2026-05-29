@@ -143,6 +143,7 @@ const backgroundFragmentShader = `
     float pointerGlow = smoothstep(0.42, 0.0, pointerDistance);
     float pointerCore = smoothstep(0.18, 0.0, pointerDistance);
     float subtleScale = mix(1.0, 0.72, uSubtle);
+    vec2 pointerParallax = (pointerUv - vec2(0.5)) * vec2(aspect, 1.0);
 
     vec3 lightA = vec3(239.0, 250.0, 249.0) / 255.0;
     vec3 lightB = vec3(219.0, 245.0, 239.0) / 255.0;
@@ -168,21 +169,51 @@ const backgroundFragmentShader = `
     color += auroraColor * aurora * uTheme * 0.062 * subtleScale;
 
     vec2 gridUv = vec2(uv.x * aspect, uv.y);
-    float fineGrid = gridLine(gridUv + vec2(uTime * 0.005, -uTime * 0.004), 34.0, 0.018);
-    float softGrid = gridLine(gridUv + vec2(-uTime * 0.002, uTime * 0.003), 12.0, 0.012);
+    vec2 depthPivot = vec2(0.5 + pointerParallax.x * 0.035, 0.46 + pointerParallax.y * 0.026);
+    vec2 depthVector = (uv - depthPivot) * vec2(aspect, 1.0);
+    float depthRadius = length(depthVector);
+    float depthRings = 1.0 - smoothstep(0.0, 0.018, abs(fract(depthRadius * 8.4 - uTime * 0.065) - 0.5));
+    float depthLanes = gridLine(vec2(depthVector.x / max(0.18, depthRadius), depthRadius) + pointerParallax * 0.08, 5.0, 0.012);
+    float depthMask = smoothstep(0.08, 0.38, depthRadius) * (1.0 - smoothstep(0.76, 1.24, depthRadius));
+    float depthField = (depthRings * 0.48 + depthLanes * 0.24) * depthMask;
+
+    vec2 nearGridUv = gridUv + vec2(uTime * 0.005, -uTime * 0.004) - pointerParallax * (0.022 + uPointerStrength * 0.018);
+    nearGridUv += depthVector * pointerCore * (0.016 + uPointerStrength * 0.025);
+    vec2 farGridUv = gridUv + vec2(-uTime * 0.002, uTime * 0.003) + pointerParallax * 0.014;
+    float fineGrid = gridLine(nearGridUv, 34.0, 0.018);
+    float liftedGrid = gridLine(nearGridUv - pointerParallax * 0.03 + vec2(0.004, -0.003), 34.0, 0.012);
+    float softGrid = gridLine(farGridUv, 12.0, 0.012);
     float broken = step(0.64, hash(floor(gridUv * 34.0) + floor(uTime * 1.4)));
+    float depthPlane = smoothstep(0.18, 0.94, uv.y + pointerParallax.y * 0.12);
+    float depthShadow = softGrid * (1.0 - depthPlane) * (0.018 + uTheme * 0.022) * subtleScale;
+    float perspectiveDepth = smoothstep(0.24, 1.0, uv.y);
+    float perspectiveScale = 1.0 / max(0.22, 1.18 - uv.y * 0.92);
+    vec2 floorUv = vec2((uv.x - 0.5) * aspect * perspectiveScale, (uv.y + 0.24) * perspectiveScale);
+    floorUv += vec2(
+      -pointerParallax.x * (0.036 + perspectiveDepth * 0.052),
+      pointerParallax.y * (0.026 + perspectiveDepth * 0.042) + uTime * 0.006
+    );
+    float floorGrid = gridLine(floorUv, 8.0 + perspectiveDepth * 10.0, 0.011);
+    float floorMask = perspectiveDepth * (0.48 + pointerGlow * 0.18);
     float matrixWake = fineGrid * pointerGlow * broken * (0.26 + uPointerStrength * 0.7);
     color = mix(color, primary, fineGrid * (1.0 - uTheme) * 0.09 * subtleScale);
     color = mix(color, secondary, softGrid * (1.0 - uTheme) * 0.052 * subtleScale);
-    color += primary * fineGrid * uTheme * 0.026 * subtleScale;
-    color += secondary * softGrid * uTheme * 0.016 * subtleScale;
+    color += primary * fineGrid * uTheme * (0.023 + depthPlane * 0.012) * subtleScale;
+    color += secondary * softGrid * uTheme * (0.012 + (1.0 - depthPlane) * 0.012) * subtleScale;
+    color = mix(color, mix(primary, secondary, perspectiveDepth), floorGrid * floorMask * (1.0 - uTheme) * 0.075 * subtleScale);
+    color += mix(primary, secondary, perspectiveDepth) * floorGrid * floorMask * uTheme * 0.035 * subtleScale;
+    vec3 depthColor = mix(secondary, primary, smoothstep(0.0, 1.0, uv.y + pointerGlow * 0.14));
+    color = mix(color, depthColor, depthField * (1.0 - uTheme) * 0.052 * subtleScale);
+    color += depthColor * depthField * uTheme * 0.024 * subtleScale;
+    color += mix(primary, secondary, pointerGlow) * liftedGrid * pointerGlow * (0.025 + uPointerStrength * 0.035) * subtleScale;
+    color = mix(color, bgA, depthShadow);
 
     vec3 wakeColor = mix(primary, tertiary, field);
     color = mix(color, wakeColor, matrixWake * (1.0 - uTheme) * 0.46 * subtleScale);
     color += wakeColor * matrixWake * uTheme * 0.56 * subtleScale;
 
-    vec2 center = vec2(0.5 + (uPointer.x - 0.5) * 0.05, 0.48 - (uPointer.y - 0.5) * 0.035);
-    vec2 ringSpace = (uv - center) * vec2(aspect * 0.76, 4.2);
+    vec2 center = vec2(0.5 + (uPointer.x - 0.5) * 0.075, 0.48 - (uPointer.y - 0.5) * 0.052);
+    vec2 ringSpace = (uv - center) * vec2(aspect * (0.73 + pointerGlow * 0.06), 4.2);
     float ringDistance = length(ringSpace);
     float ring = abs(sin(ringDistance * 18.0 - uTime * 0.76));
     float ringMask = smoothstep(0.97, 1.0, ring) * smoothstep(1.42, 0.1, ringDistance);
@@ -227,24 +258,33 @@ const particleVertexShader = `
   varying float vAlpha;
   varying float vTone;
   varying float vForce;
+  varying float vDepth;
 
   void main() {
     float aspect = uResolution.x / max(uResolution.y, 1.0);
     vec2 pointerNdc = vec2(uPointer.x * 2.0 - 1.0, (1.0 - uPointer.y) * 2.0 - 1.0);
     vec2 pos = position.xy;
-    pos.y = mod(pos.y + uTime * (0.035 + aSeed * 0.045), 2.42) - 1.21;
-    pos.x += sin(uTime * (0.18 + aSeed * 0.21) + aSeed * 24.0) * (0.015 + aDepth * 0.05);
+    float depthCurve = pow(aDepth, 1.32);
+    float depthScale = mix(0.78, 1.34, depthCurve);
+    pos *= depthScale;
+    pos -= pointerNdc * (aDepth - 0.46) * (0.062 + uPointerStrength * 0.046);
+    pos.x += pointerNdc.y * (aDepth - 0.5) * 0.018;
+    pos.y += (aDepth - 0.5) * 0.092;
+    pos.y = mod(pos.y + uTime * (0.024 + aSeed * 0.031 + depthCurve * 0.04), 2.48) - 1.24;
+    pos.x += sin(uTime * (0.18 + aSeed * 0.21) + aSeed * 24.0) * (0.01 + depthCurve * 0.092);
 
     vec2 diff = (pos - pointerNdc) * vec2(aspect, 1.0);
     float distanceToPointer = length(diff);
     float force = smoothstep(0.42, 0.0, distanceToPointer) * uPointerStrength;
-    pos += normalize(pos - pointerNdc + 0.0001) * force * (0.025 + aDepth * 0.052);
+    pos += normalize(pos - pointerNdc + 0.0001) * force * (0.024 + depthCurve * 0.068);
 
-    gl_Position = vec4(pos, 0.0, 1.0);
-    gl_PointSize = aSize * uPixelRatio * (1.0 + aDepth * 1.9 + force * 2.1) * mix(1.08, 0.94, uTheme) * mix(1.0, 0.74, uSubtle);
-    vAlpha = (0.28 + aDepth * 0.62 + force * 0.45) * mix(0.38, 0.62, uTheme) * mix(1.0, 0.72, uSubtle);
+    float nearPulse = smoothstep(0.62, 1.0, aDepth);
+    gl_Position = vec4(pos * (1.0 + force * 0.018 + nearPulse * 0.012), 0.0, 1.0);
+    gl_PointSize = aSize * uPixelRatio * (0.72 + depthCurve * 3.08 + force * 2.55) * mix(1.06, 0.94, uTheme) * mix(1.0, 0.74, uSubtle);
+    vAlpha = (0.18 + depthCurve * 0.76 + force * 0.52) * mix(0.46, 0.66, uTheme) * mix(1.0, 0.72, uSubtle);
     vTone = aTone;
     vForce = force;
+    vDepth = aDepth;
   }
 `
 
@@ -255,17 +295,21 @@ const particleFragmentShader = `
   varying float vAlpha;
   varying float vTone;
   varying float vForce;
+  varying float vDepth;
 
   void main() {
     vec2 pixel = abs(gl_PointCoord - 0.5);
-    float square = 1.0 - smoothstep(0.34, 0.5, max(pixel.x, pixel.y));
+    float square = 1.0 - smoothstep(0.22, 0.38, max(pixel.x, pixel.y));
+    float halo = 1.0 - smoothstep(0.2, 0.5, length(gl_PointCoord - 0.5));
+    float depthHalo = halo * smoothstep(0.46, 1.0, vDepth) * 0.36;
+    float pointAlpha = clamp(max(square, depthHalo), 0.0, 1.0);
     vec3 primary = mix(vec3(13.0, 148.0, 136.0), vec3(34.0, 197.0, 177.0), uTheme) / 255.0;
     vec3 secondary = mix(vec3(37.0, 99.0, 235.0), vec3(76.0, 138.0, 212.0), uTheme) / 255.0;
     vec3 tertiary = mix(vec3(2.0, 132.0, 199.0), vec3(82.0, 176.0, 214.0), uTheme) / 255.0;
     vec3 color = mix(primary, secondary, smoothstep(0.22, 0.72, vTone));
     color = mix(color, tertiary, smoothstep(0.68, 1.0, vTone));
-    color = mix(color, vec3(0.96, 1.0, 0.98), vForce * mix(0.08, 0.065, uTheme));
-    gl_FragColor = vec4(color, square * vAlpha);
+    color = mix(color, vec3(0.96, 1.0, 0.98), vForce * mix(0.08, 0.065, uTheme) + smoothstep(0.78, 1.0, vDepth) * 0.055);
+    gl_FragColor = vec4(color, pointAlpha * vAlpha);
   }
 `
 
