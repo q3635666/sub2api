@@ -71,6 +71,12 @@ export default defineConfig(({ mode }) => {
          */
         manualChunks(id: string) {
           if (id.includes('node_modules')) {
+            // Live2D 依赖会在模块顶层注入 Cubism 运行时脚本。
+            // 必须独立成懒加载 chunk，避免 builtin 客服模式下被 vendor-misc 提前执行并触发 CSP 白屏。
+            if (id.includes('/oh-my-live2d/')) {
+              return 'vendor-live2d'
+            }
+
             // Vue 核心库
             if (
               id.includes('/vue/') ||
