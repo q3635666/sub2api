@@ -10,6 +10,7 @@
 import { computed } from 'vue'
 import InteractiveRouteBackgroundCanvas from './InteractiveRouteBackgroundCanvas.vue'
 import InteractiveRouteBackgroundThree from './InteractiveRouteBackgroundThree.vue'
+import { publicSiteConfig } from '../../../public-site.config'
 
 const props = withDefaults(defineProps<{
   isDark: boolean
@@ -18,13 +19,8 @@ const props = withDefaults(defineProps<{
   subtle: false
 })
 
-type BackgroundRenderer = 'three' | 'canvas'
-
-// Dev-only switch for background experiments; no UI control is rendered.
-const DEFAULT_BACKGROUND_RENDERER = 'three' as BackgroundRenderer
-
 const activeComponent = computed(() =>
-  DEFAULT_BACKGROUND_RENDERER === 'canvas' ? InteractiveRouteBackgroundCanvas : InteractiveRouteBackgroundThree
+  publicSiteConfig.background.renderer === 'canvas' ? InteractiveRouteBackgroundCanvas : InteractiveRouteBackgroundThree
 )
 
 void props

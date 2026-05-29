@@ -1,5 +1,5 @@
 <template>
-  <div class="support-shell" :class="{ 'is-open': isOpen }">
+  <div class="support-shell" :class="{ 'is-open': isOpen, 'has-mascot': mascotVisible }">
     <transition name="support-backdrop">
       <button
         v-if="isOpen"
@@ -63,7 +63,19 @@
       </section>
     </transition>
 
-    <button class="support-trigger" type="button" :aria-expanded="isOpen" @click="togglePanel">
+    <component
+      :is="activeMascotComponent"
+      v-if="mascotEnabled"
+      v-show="mascotVisible"
+      :active="isOpen"
+      :label="t('support.trigger')"
+      :model-path="supportMascotConfig.live2dModelPath"
+      @activate="togglePanel"
+      @ready="handleMascotReady"
+      @fail="handleMascotFail"
+    />
+
+    <button v-show="!mascotVisible" class="support-trigger" type="button" :aria-expanded="isOpen" @click="togglePanel">
       <span class="trigger-glow" aria-hidden="true"></span>
       <Icon name="chat" size="lg" :stroke-width="2.2" />
       <span>{{ t('support.trigger') }}</span>
@@ -72,10 +84,11 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, defineAsyncComponent, onBeforeUnmount, onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useAppStore } from '@/stores'
 import Icon from '@/components/icons/Icon.vue'
+import { publicSiteConfig } from '../../../public-site.config'
 
 type SupportIcon = 'telegram' | 'x' | 'chat' | 'book'
 
@@ -91,6 +104,40 @@ interface SupportItem {
 const appStore = useAppStore()
 const { t } = useI18n()
 const isOpen = ref(false)
+const mascotReady = ref(false)
+const mascotFailed = ref(false)
+const supportMascotConfig = publicSiteConfig.supportMascot
+
+const SupportLive2DMascot = defineAsyncComponent({
+  loader: () => import('./SupportLive2DMascot.vue'),
+  delay: supportMascotConfig.loadDelayMs,
+  timeout: supportMascotConfig.timeoutMs,
+  onError(_error, _retry, fail) {
+    mascotFailed.value = true
+    fail()
+  }
+})
+
+const SupportLive2DWidget = defineAsyncComponent({
+  loader: () => import('./SupportLive2DWidget.vue'),
+  delay: supportMascotConfig.loadDelayMs,
+  timeout: supportMascotConfig.timeoutMs,
+  onError(_error, _retry, fail) {
+    mascotFailed.value = true
+    fail()
+  }
+})
+
+const mascotEnabled = computed(() =>
+  supportMascotConfig.renderer === 'builtin' ||
+  (supportMascotConfig.renderer === 'live2d' && Boolean(supportMascotConfig.live2dModelPath))
+)
+const activeMascotComponent = computed(() =>
+  supportMascotConfig.renderer === 'live2d' ? SupportLive2DWidget : SupportLive2DMascot
+)
+const mascotVisible = computed(() => mascotEnabled.value && mascotReady.value && !mascotFailed.value)
+
+let mascotTimeout = 0
 
 const supportItems = computed<SupportItem[]>(() => {
   const raw = appStore.contactInfo || appStore.cachedPublicSettings?.contact_info || ''
@@ -157,6 +204,27 @@ function handleCardClick(item: SupportItem) {
   if (!item.href) return
   closePanel()
 }
+
+function handleMascotReady() {
+  mascotReady.value = true
+}
+
+function handleMascotFail() {
+  mascotFailed.value = true
+}
+
+onMounted(() => {
+  if (!mascotEnabled.value) return
+  mascotTimeout = window.setTimeout(() => {
+    if (!mascotReady.value) {
+      mascotFailed.value = true
+    }
+  }, supportMascotConfig.timeoutMs + 600)
+})
+
+onBeforeUnmount(() => {
+  window.clearTimeout(mascotTimeout)
+})
 </script>
 
 <style scoped>
@@ -197,6 +265,10 @@ function handleCardClick(item: SupportItem) {
   backdrop-filter: blur(30px) saturate(1.22);
   -webkit-backdrop-filter: blur(30px) saturate(1.22);
   isolation: isolate;
+}
+
+.support-shell.has-mascot .support-panel {
+  bottom: 162px;
 }
 
 .panel-sheen {
@@ -545,6 +617,10 @@ function handleCardClick(item: SupportItem) {
   .support-panel {
     bottom: 60px;
     padding: 22px;
+  }
+
+  .support-shell.has-mascot .support-panel {
+    bottom: 108px;
   }
 
   .panel-header h2 {

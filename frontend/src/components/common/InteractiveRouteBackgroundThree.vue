@@ -241,8 +241,8 @@ const particleVertexShader = `
     pos += normalize(pos - pointerNdc + 0.0001) * force * (0.025 + aDepth * 0.052);
 
     gl_Position = vec4(pos, 0.0, 1.0);
-    gl_PointSize = aSize * uPixelRatio * (1.0 + aDepth * 1.9 + force * 2.1) * mix(1.08, 0.84, uTheme) * mix(1.0, 0.74, uSubtle);
-    vAlpha = (0.28 + aDepth * 0.62 + force * 0.45) * mix(0.38, 0.52, uTheme) * mix(1.0, 0.72, uSubtle);
+    gl_PointSize = aSize * uPixelRatio * (1.0 + aDepth * 1.9 + force * 2.1) * mix(1.08, 0.94, uTheme) * mix(1.0, 0.74, uSubtle);
+    vAlpha = (0.28 + aDepth * 0.62 + force * 0.45) * mix(0.38, 0.62, uTheme) * mix(1.0, 0.72, uSubtle);
     vTone = aTone;
     vForce = force;
   }
@@ -264,7 +264,7 @@ const particleFragmentShader = `
     vec3 tertiary = mix(vec3(2.0, 132.0, 199.0), vec3(82.0, 176.0, 214.0), uTheme) / 255.0;
     vec3 color = mix(primary, secondary, smoothstep(0.22, 0.72, vTone));
     color = mix(color, tertiary, smoothstep(0.68, 1.0, vTone));
-    color = mix(color, vec3(0.96, 1.0, 0.98), vForce * mix(0.08, 0.04, uTheme));
+    color = mix(color, vec3(0.96, 1.0, 0.98), vForce * mix(0.08, 0.065, uTheme));
     gl_FragColor = vec4(color, square * vAlpha);
   }
 `

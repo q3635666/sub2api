@@ -431,40 +431,16 @@ import LocaleSwitcher from '@/components/common/LocaleSwitcher.vue'
 import InteractiveRouteBackground from '@/components/common/InteractiveRouteBackground.vue'
 import Icon from '@/components/icons/Icon.vue'
 import BrandIcon from '@/components/icons/BrandIcon.vue'
-
-type HomeIconName =
-  | 'server'
-  | 'shield'
-  | 'chart'
-  | 'dollar'
-  | 'users'
-  | 'bell'
-  | 'key'
-  | 'swap'
-  | 'terminal'
-  | 'creditCard'
-  | 'globe'
-  | 'lock'
-  | 'bolt'
-  | 'cpu'
-
-type BrandIconName =
-  | 'gateway'
-  | 'openai'
-  | 'gpt'
-  | 'claude'
-  | 'gemini'
-  | 'deepseek'
-  | 'grok'
-  | 'qwen'
-  | 'cherry-studio'
-  | 'codex'
-  | 'claude-code'
-  | 'gemini-cli'
-  | 'antigravity'
-  | 'more'
+import {
+  publicSiteConfig,
+  type BrandIconName,
+  type ConfiguredText,
+  type HomeIconName,
+  type TerminalSourceLine
+} from '../../public-site.config'
 
 const { t } = useI18n()
+const homeConfig = publicSiteConfig.home
 
 const authStore = useAuthStore()
 const appStore = useAppStore()
@@ -494,35 +470,12 @@ let terminalCharIndex = 0
 let terminalLineId = 0
 let terminalNeedsNewLine = true
 
-type TerminalTone = 'command' | 'trace' | 'ok'
-
-type TerminalSourceLine = {
-  prompt: string
-  text: string
-  tone: TerminalTone
-}
-
 type TerminalVisibleLine = TerminalSourceLine & {
   id: number
   active: boolean
 }
 
-const terminalSourceLines: TerminalSourceLine[] = [
-  { prompt: '$', text: '121 route --model claude-sonnet-4 --stream', tone: 'command' },
-  { prompt: '>', text: 'normalize.messages(provider="openai")', tone: 'trace' },
-  { prompt: '>', text: 'scorePools({ latency: 31, quota: "ok" })', tone: 'trace' },
-  { prompt: '>', text: 'bindStickySession("user_8f2", "edge-sha")', tone: 'trace' },
-  { prompt: '>', text: 'fallbackGraph: gpt-4o -> gemini-2.5-pro', tone: 'trace' },
-  { prompt: '>', text: 'redact(apiKey) && audit.write(requestId)', tone: 'trace' },
-  { prompt: '>', text: 'stream.delta({ tokens: 128, toolCalls: 2 })', tone: 'trace' },
-  { prompt: '>', text: 'semanticCache.lookup(promptHash) = miss', tone: 'trace' },
-  { prompt: '>', text: 'retryPolicy.backoff(max=2, jitter=42ms)', tone: 'trace' },
-  { prompt: '>', text: 'usage.record({ input: 1840, output: 512 })', tone: 'trace' },
-  { prompt: '>', text: 'cost.sync(currency="USD", precision=6)', tone: 'trace' },
-  { prompt: '>', text: 'guardrails.scan(content) = pass', tone: 'trace' },
-  { prompt: '>', text: 'emit.sse("[DONE]")', tone: 'trace' },
-  { prompt: '200', text: 'routed via 121API edge in 31ms', tone: 'ok' }
-]
+const terminalSourceLines = homeConfig.terminalSourceLines
 
 const terminalVisibleLines = ref<TerminalVisibleLine[]>([])
 
@@ -535,7 +488,7 @@ const isAuthenticated = computed(() => authStore.isAuthenticated)
 const isAdmin = computed(() => authStore.isAdmin)
 const dashboardPath = computed(() => (isAdmin.value ? '/admin/dashboard' : '/dashboard'))
 const currentYear = computed(() => new Date().getFullYear())
-const githubUrl = 'https://github.com/Wei-Shaw/sub2api'
+const githubUrl = homeConfig.githubUrl
 
 const heroWords = computed(() => {
   const title = siteName.value.trim() || t('home.defaultSiteName')
@@ -562,12 +515,11 @@ const isHomeContentUrl = computed(() => {
 })
 
 const pointerStyle = {
-  '--pointer-x': '50%',
-  '--pointer-y': '42%'
+  ...homeConfig.pointerStyle
 }
 
-const matrixCols = 12
-const matrixRows = 8
+const matrixCols = homeConfig.matrix.cols
+const matrixRows = homeConfig.matrix.rows
 const matrixActive = computed(() => matrixFocus.value !== null)
 const matrixCells = computed(() =>
   Array.from({ length: matrixCols * matrixRows }, (_, index) => {
@@ -579,25 +531,35 @@ const matrixCells = computed(() =>
 
     return {
       id: index,
-      intensity: Math.max(0, 1 - distance / 3.8),
-      delay: (col * 19 + row * 31) % 190
+      intensity: Math.max(0, 1 - distance / homeConfig.matrix.activeRadius),
+      delay: (col * homeConfig.matrix.colDelayMs + row * homeConfig.matrix.rowDelayMs) % homeConfig.matrix.maxDelayMs
     }
   })
 )
 
-const brandEchoText = '121 API'
+const brandEchoText = homeConfig.brandEchoText
 
-const heroMetrics = computed(() => [
-  { label: t('home.metrics.compatibility.label'), value: t('home.metrics.compatibility.value') },
-  { label: t('home.metrics.routing.label'), value: t('home.metrics.routing.value') },
-  { label: t('home.metrics.billing.label'), value: t('home.metrics.billing.value') }
-])
+function resolveConfiguredText(source: ConfiguredText) {
+  if ('i18nKey' in source && source.i18nKey) {
+    return t(source.i18nKey)
+  }
+  return source.text ?? ''
+}
 
-const routeRows = computed(() => [
-  { name: t('home.routeRows.claudePool'), value: '31 ms', color: '#22c55e' },
-  { name: t('home.routeRows.gptRoute'), value: t('home.routeRows.ready'), color: '#3b82f6' },
-  { name: t('home.routeRows.geminiLane'), value: t('home.routeRows.sync'), color: '#22d3ee' }
-])
+const heroMetrics = computed(() =>
+  homeConfig.heroMetrics.map((item) => ({
+    label: t(item.labelKey),
+    value: t(item.valueKey)
+  }))
+)
+
+const routeRows = computed(() =>
+  homeConfig.routeRows.map((item) => ({
+    name: t(item.nameKey),
+    value: item.valueKey ? t(item.valueKey) : item.value || '',
+    color: item.color
+  }))
+)
 
 type FeatureCard = {
   title: string
@@ -609,82 +571,30 @@ type FeatureCard = {
   featured?: boolean
 }
 
-const featureCards = computed<FeatureCard[]>(() => [
-  {
-    title: t('home.featureCards.models.title'),
-    description: t('home.featureCards.models.description'),
-    eyebrow: t('home.featureCards.models.eyebrow'),
-    icon: 'cpu',
-    visual: 'models',
-    color: '#14b8a6',
-    featured: true
-  },
-  {
-    title: t('home.featureCards.api.title'),
-    description: t('home.featureCards.api.description'),
-    eyebrow: t('home.featureCards.api.eyebrow'),
-    icon: 'terminal',
-    visual: 'api',
-    color: '#2563eb'
-  },
-  {
-    title: t('home.featureCards.billing.title'),
-    description: t('home.featureCards.billing.description'),
-    eyebrow: t('home.featureCards.billing.eyebrow'),
-    icon: 'dollar',
-    visual: 'billing',
-    color: '#0ea5e9'
-  },
-  {
-    title: t('home.featureCards.routing.title'),
-    description: t('home.featureCards.routing.description'),
-    eyebrow: t('home.featureCards.routing.eyebrow'),
-    icon: 'swap',
-    visual: 'routing',
-    color: '#0ea5e9'
-  },
-  {
-    title: t('home.featureCards.guard.title'),
-    description: t('home.featureCards.guard.description'),
-    eyebrow: t('home.featureCards.guard.eyebrow'),
-    icon: 'lock',
-    visual: 'guard',
-    color: '#10b981'
-  },
-  {
-    title: t('home.featureCards.global.title'),
-    description: t('home.featureCards.global.description'),
-    eyebrow: t('home.featureCards.global.eyebrow'),
-    icon: 'globe',
-    visual: 'global',
-    color: '#38bdf8'
-  }
-])
+const featureCards = computed<FeatureCard[]>(() =>
+  homeConfig.featureCards.map((item) => ({
+    title: t(item.titleKey),
+    description: t(item.descriptionKey),
+    eyebrow: t(item.eyebrowKey),
+    icon: item.icon,
+    visual: item.visual,
+    color: item.color,
+    featured: item.featured
+  }))
+)
 
-const modelNodes: Array<{ name: string; icon: BrandIconName; color: string }> = [
-  { name: 'OpenAI', icon: 'openai', color: '#16a34a' },
-  { name: 'Claude', icon: 'claude', color: '#14b8a6' },
-  { name: 'Gemini', icon: 'gemini', color: '#2563eb' },
-  { name: 'DeepSeek', icon: 'deepseek', color: '#0ea5e9' },
-  { name: 'Grok', icon: 'grok', color: '#111827' },
-  { name: 'Qwen', icon: 'qwen', color: '#7c3aed' }
-]
+const modelNodes = homeConfig.modelNodes
 
-const billingBars = [38, 68, 46, 82, 58, 92, 64]
-const routeLanes = [1, 2, 3, 4]
-const guardBadges = computed<Array<{ name: string; icon: HomeIconName; color: string }>>(() => [
-  { name: t('home.guardBadges.key'), icon: 'key', color: '#14b8a6' },
-  { name: t('home.guardBadges.permission'), icon: 'shield', color: '#2563eb' },
-  { name: t('home.guardBadges.risk'), icon: 'lock', color: '#10b981' },
-  { name: t('home.guardBadges.logs'), icon: 'chart', color: '#0ea5e9' }
-])
-const globalPoints = [
-  { id: 1, left: '18%', top: '36%', delay: '0s' },
-  { id: 2, left: '34%', top: '52%', delay: '.2s' },
-  { id: 3, left: '52%', top: '32%', delay: '.4s' },
-  { id: 4, left: '66%', top: '58%', delay: '.6s' },
-  { id: 5, left: '78%', top: '42%', delay: '.8s' }
-]
+const billingBars = homeConfig.billingBars
+const routeLanes = homeConfig.routeLanes
+const guardBadges = computed<Array<{ name: string; icon: HomeIconName; color: string }>>(() =>
+  homeConfig.guardBadges.map((item) => ({
+    name: t(item.nameKey),
+    icon: item.icon,
+    color: item.color
+  }))
+)
+const globalPoints = homeConfig.globalPoints
 
 type FlowStep = {
   title: string
@@ -692,55 +602,26 @@ type FlowStep = {
   icon: HomeIconName
 }
 
-const flowSteps = computed<FlowStep[]>(() => [
-  {
-    title: t('home.flowSteps.accounts.title'),
-    description: t('home.flowSteps.accounts.description'),
-    icon: 'server'
-  },
-  {
-    title: t('home.flowSteps.strategy.title'),
-    description: t('home.flowSteps.strategy.description'),
-    icon: 'swap'
-  },
-  {
-    title: t('home.flowSteps.endpoint.title'),
-    description: t('home.flowSteps.endpoint.description'),
-    icon: 'terminal'
-  },
-  {
-    title: t('home.flowSteps.observability.title'),
-    description: t('home.flowSteps.observability.description'),
-    icon: 'chart'
-  }
-])
+const flowSteps = computed<FlowStep[]>(() =>
+  homeConfig.flowSteps.map((item) => ({
+    title: t(item.titleKey),
+    description: t(item.descriptionKey),
+    icon: item.icon
+  }))
+)
 
-const partnerItems: Array<{ name: string; icon: BrandIconName; type: string; color: string }> = [
-  { name: 'OpenAI', icon: 'openai', type: 'LLM', color: '#16a34a' },
-  { name: 'Claude', icon: 'claude', type: 'Assistant', color: '#14b8a6' },
-  { name: 'Gemini', icon: 'gemini', type: 'Multimodal', color: '#2563eb' },
-  { name: 'DeepSeek', icon: 'deepseek', type: 'Reasoning', color: '#0ea5e9' },
-  { name: 'Grok', icon: 'grok', type: 'Realtime', color: '#111827' },
-  { name: 'Qwen', icon: 'qwen', type: 'Coding', color: '#7c3aed' },
-  { name: 'Cherry Studio', icon: 'cherry-studio', type: 'Client', color: '#ef4444' },
-  { name: 'Codex', icon: 'codex', type: 'Agent', color: '#14b8a6' },
-  { name: 'Claude Code', icon: 'claude-code', type: 'Terminal', color: '#22d3ee' },
-  { name: 'Gemini CLI', icon: 'gemini-cli', type: 'Tooling', color: '#3b82f6' },
-  { name: 'Antigravity', icon: 'antigravity', type: 'IDE', color: '#e11d48' },
-  { name: '121Api', icon: 'gateway', type: 'Gateway', color: '#0f766e' }
-]
+const partnerItems = homeConfig.partnerItems
 
 const partnerLoop = computed(() => [...partnerItems, ...partnerItems])
 
-const modelHighlights = computed<Array<{ name: string; icon: BrandIconName; status: string; color: string }>>(() => [
-  { name: 'Claude', icon: 'claude', status: t('home.modelStatus.supported'), color: '#14b8a6' },
-  { name: 'GPT', icon: 'gpt', status: t('home.modelStatus.supported'), color: '#16a34a' },
-  { name: 'Gemini', icon: 'gemini', status: t('home.modelStatus.supported'), color: '#2563eb' },
-  { name: 'DeepSeek', icon: 'deepseek', status: t('home.modelStatus.extensible'), color: '#0ea5e9' },
-  { name: 'Qwen', icon: 'qwen', status: t('home.modelStatus.extensible'), color: '#7c3aed' },
-  { name: 'Antigravity', icon: 'antigravity', status: t('home.modelStatus.supported'), color: '#e11d48' },
-  { name: t('home.modelStatus.moreModels'), icon: 'more', status: t('home.modelStatus.continuing'), color: '#64748b' }
-])
+const modelHighlights = computed<Array<{ name: string; icon: BrandIconName; status: string; color: string }>>(() =>
+  homeConfig.modelHighlights.map((item) => ({
+    name: resolveConfiguredText(item.name),
+    icon: item.icon,
+    status: t(item.statusKey),
+    color: item.color
+  }))
+)
 
 function handlePointerMove(event: PointerEvent) {
   const rect = homeRoot.value?.getBoundingClientRect()
