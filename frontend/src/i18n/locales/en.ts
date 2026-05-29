@@ -231,6 +231,13 @@ export default {
     title: 'Need help?',
     intro: 'For plan selection, order payments, subscription setup or usage configuration, reach us through one of the options below.',
     trigger: 'Support',
+    mascotMessages: {
+      contact: 'Tap me when you need support. I can help with setup.',
+      compatibility: 'A good API gateway makes complexity feel quiet.',
+      routing: 'Multi-model routing matters most when every request arrives safely.',
+      billing: 'Every call should be clear, traceable, and easy to understand.',
+      guard: 'Let the system hold pools, sessions, and guardrails while you build.'
+    },
     items: {
       telegram: 'Telegram support',
       qq: 'QQ support',

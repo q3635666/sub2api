@@ -70,6 +70,10 @@
       :active="isOpen"
       :label="t('support.trigger')"
       :model-path="supportMascotConfig.live2dModelPath"
+      :messages="supportMascotMessages"
+      :speech-initial-delay-ms="supportMascotConfig.speechInitialDelayMs"
+      :speech-interval-ms="supportMascotConfig.speechIntervalMs"
+      :speech-display-ms="supportMascotConfig.speechDisplayMs"
       @activate="togglePanel"
       @ready="handleMascotReady"
       @fail="handleMascotFail"
@@ -88,7 +92,7 @@ import { computed, defineAsyncComponent, onBeforeUnmount, onMounted, ref } from 
 import { useI18n } from 'vue-i18n'
 import { useAppStore } from '@/stores'
 import Icon from '@/components/icons/Icon.vue'
-import { publicSiteConfig } from '../../../public-site.config'
+import { publicSiteConfig, type ConfiguredText } from '../../../public-site.config'
 
 type SupportIcon = 'telegram' | 'x' | 'chat' | 'book'
 
@@ -136,8 +140,18 @@ const activeMascotComponent = computed(() =>
   supportMascotConfig.renderer === 'live2d' ? SupportLive2DWidget : SupportLive2DMascot
 )
 const mascotVisible = computed(() => mascotEnabled.value && mascotReady.value && !mascotFailed.value)
+const supportMascotMessages = computed(() =>
+  supportMascotConfig.speechMessages.map((message) => resolveConfiguredText(message)).filter(Boolean)
+)
 
 let mascotTimeout = 0
+
+function resolveConfiguredText(source: ConfiguredText) {
+  if ('i18nKey' in source && source.i18nKey) {
+    return t(source.i18nKey)
+  }
+  return source.text ?? ''
+}
 
 const supportItems = computed<SupportItem[]>(() => {
   const raw = appStore.contactInfo || appStore.cachedPublicSettings?.contact_info || ''
@@ -610,17 +624,21 @@ onBeforeUnmount(() => {
 
 @media (max-width: 640px) {
   .support-shell {
-    right: 12px;
-    bottom: 12px;
+    right: max(8px, env(safe-area-inset-right));
+    bottom: max(10px, env(safe-area-inset-bottom));
+    width: 92px;
+    height: 108px;
   }
 
   .support-panel {
     bottom: 60px;
+    right: 0;
+    width: min(390px, calc(100vw - 20px));
     padding: 22px;
   }
 
   .support-shell.has-mascot .support-panel {
-    bottom: 108px;
+    bottom: 118px;
   }
 
   .panel-header h2 {

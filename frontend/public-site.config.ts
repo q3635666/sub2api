@@ -109,6 +109,27 @@ type PublicSiteConfig = {
      * 小人加载超时时间。超时或失败后保留原来的客服按钮，避免入口消失。
      */
     timeoutMs: number
+
+    /**
+     * 小人气泡首次出现延迟。加载成功后会先提示用户可以点击找客服。
+     */
+    speechInitialDelayMs: number
+
+    /**
+     * 小人闲置时轮播一句话的间隔。
+     */
+    speechIntervalMs: number
+
+    /**
+     * 每句话停留多久。
+     */
+    speechDisplayMs: number
+
+    /**
+     * 小人气泡文案。第一句建议保留为“点我找客服”的提示。
+     * 可以直接写 { text: '...' }，也可以使用 { i18nKey: '...' } 走国际化。
+     */
+    speechMessages: ConfiguredText[]
   }
 
   home: {
@@ -182,7 +203,17 @@ export const publicSiteConfig: PublicSiteConfig = {
     renderer: 'builtin',
     live2dModelPath: '',
     loadDelayMs: 450,
-    timeoutMs: 3200
+    timeoutMs: 3200,
+    speechInitialDelayMs: 900,
+    speechIntervalMs: 8200,
+    speechDisplayMs: 5200,
+    speechMessages: [
+      { i18nKey: 'support.mascotMessages.contact' },
+      { i18nKey: 'support.mascotMessages.compatibility' },
+      { i18nKey: 'support.mascotMessages.routing' },
+      { i18nKey: 'support.mascotMessages.billing' },
+      { i18nKey: 'support.mascotMessages.guard' }
+    ]
   },
 
   home: {

@@ -231,6 +231,13 @@ export default {
     title: '需要帮助？',
     intro: '套餐选择、订单支付、订阅添加或使用配置问题，都可以通过下面的联系方式咨询。',
     trigger: '客服',
+    mascotMessages: {
+      contact: '点我找客服，接入问题我来带路。',
+      compatibility: '好的 API 入口，应该让复杂安静下来。',
+      routing: '多模型聚合，真正重要的是稳定抵达。',
+      billing: '每一次调用都应清楚、透明、可追踪。',
+      guard: '把账号池、会话和风控交给系统，把注意力留给产品。'
+    },
     items: {
       telegram: 'Telegram 客服',
       qq: 'QQ 客服',

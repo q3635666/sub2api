@@ -7,11 +7,16 @@
     :aria-label="label"
     :aria-expanded="active"
     @click="$emit('activate')"
-    @pointerenter="settled = false"
+    @pointerenter="handlePointerEnter"
     @pointerleave="settleLook"
   >
     <span class="mascot-aura" aria-hidden="true"></span>
     <span class="mascot-orbit" aria-hidden="true"></span>
+    <transition name="mascot-speech">
+      <span v-if="speechVisible && currentMessage && !active" class="mascot-speech" aria-hidden="true">
+        {{ currentMessage }}
+      </span>
+    </transition>
     <span class="mascot-stage" aria-hidden="true">
       <svg class="mascot-figure" viewBox="0 0 148 178" role="img" aria-hidden="true">
         <defs>
@@ -134,12 +139,21 @@
 </template>
 
 <script setup lang="ts">
-import { nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 
-defineProps<{
+const props = withDefaults(defineProps<{
   active: boolean
   label: string
-}>()
+  messages?: string[]
+  speechInitialDelayMs?: number
+  speechIntervalMs?: number
+  speechDisplayMs?: number
+}>(), {
+  messages: () => [],
+  speechInitialDelayMs: 900,
+  speechIntervalMs: 8200,
+  speechDisplayMs: 5200
+})
 
 const emit = defineEmits<{
   activate: []
@@ -148,9 +162,15 @@ const emit = defineEmits<{
 
 const rootRef = ref<HTMLButtonElement | null>(null)
 const settled = ref(true)
+const speechVisible = ref(false)
+const messageIndex = ref(0)
+
+const currentMessage = computed(() => props.messages[messageIndex.value] || props.label)
 
 let animationFrame = 0
 let settleTimer = 0
+let speechTimer = 0
+let speechHideTimer = 0
 let pointerX = 0
 let pointerY = 0
 let reducedMotion = false
@@ -191,6 +211,39 @@ function handlePointerMove(event: PointerEvent) {
   settleTimer = window.setTimeout(settleLook, 1400)
 }
 
+function clearSpeechTimers() {
+  window.clearTimeout(speechTimer)
+  window.clearTimeout(speechHideTimer)
+}
+
+function queueSpeech(delay = props.speechIntervalMs, index?: number) {
+  if (reducedMotion || props.active || props.messages.length === 0) return
+  window.clearTimeout(speechTimer)
+  speechTimer = window.setTimeout(() => showSpeech(index), delay)
+}
+
+function showSpeech(index?: number) {
+  if (props.active || props.messages.length === 0) return
+  clearSpeechTimers()
+
+  if (typeof index === 'number') {
+    messageIndex.value = index % props.messages.length
+  } else {
+    messageIndex.value = (messageIndex.value + 1) % props.messages.length
+  }
+
+  speechVisible.value = true
+  speechHideTimer = window.setTimeout(() => {
+    speechVisible.value = false
+    queueSpeech()
+  }, props.speechDisplayMs)
+}
+
+function handlePointerEnter() {
+  settled.value = false
+  showSpeech(0)
+}
+
 function settleLook() {
   settled.value = true
   window.clearTimeout(settleTimer)
@@ -201,15 +254,31 @@ function settleLook() {
   applyLook(0, 0)
 }
 
+watch(
+  () => props.active,
+  (active) => {
+    if (active) {
+      speechVisible.value = false
+      clearSpeechTimers()
+      return
+    }
+    queueSpeech(props.speechInitialDelayMs, 0)
+  }
+)
+
 onMounted(async () => {
   reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
   window.addEventListener('pointermove', handlePointerMove, { passive: true })
   await nextTick()
-  requestAnimationFrame(() => emit('ready'))
+  requestAnimationFrame(() => {
+    emit('ready')
+    queueSpeech(props.speechInitialDelayMs, 0)
+  })
 })
 
 onBeforeUnmount(() => {
   window.clearTimeout(settleTimer)
+  clearSpeechTimers()
   if (animationFrame) {
     window.cancelAnimationFrame(animationFrame)
   }
@@ -233,6 +302,7 @@ onBeforeUnmount(() => {
   color: #0f766e;
   cursor: pointer;
   isolation: isolate;
+  overflow: visible;
   touch-action: manipulation;
 }
 
@@ -353,6 +423,57 @@ onBeforeUnmount(() => {
   transition: transform 0.24s ease;
 }
 
+.mascot-speech {
+  pointer-events: none;
+  position: absolute;
+  right: 112px;
+  bottom: 98px;
+  z-index: 3;
+  width: max-content;
+  max-width: min(246px, calc(100vw - 188px));
+  border-radius: 8px;
+  background:
+    radial-gradient(circle at 18% 0%, rgba(20, 184, 166, 0.13), transparent 42%),
+    linear-gradient(135deg, rgba(255, 255, 255, 0.82), rgba(238, 251, 249, 0.68));
+  padding: 10px 12px;
+  color: #0f766e;
+  font-size: 13px;
+  font-weight: 760;
+  line-height: 1.48;
+  text-align: left;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.86),
+    0 16px 34px rgba(15, 23, 42, 0.12);
+  backdrop-filter: blur(20px) saturate(1.18);
+  -webkit-backdrop-filter: blur(20px) saturate(1.18);
+}
+
+.mascot-speech::after {
+  content: '';
+  position: absolute;
+  right: -5px;
+  bottom: 16px;
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+  background: rgba(238, 251, 249, 0.78);
+  transform: rotate(45deg);
+}
+
+:global(.dark) .mascot-speech {
+  background:
+    radial-gradient(circle at 18% 0%, rgba(20, 184, 166, 0.2), transparent 42%),
+    linear-gradient(135deg, rgba(15, 23, 42, 0.76), rgba(8, 47, 73, 0.58));
+  color: #ccfbf1;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.14),
+    0 18px 36px rgba(0, 0, 0, 0.26);
+}
+
+:global(.dark) .mascot-speech::after {
+  background: rgba(15, 23, 42, 0.76);
+}
+
 .live2d-support::after {
   content: '';
   pointer-events: none;
@@ -367,6 +488,21 @@ onBeforeUnmount(() => {
     0 0 0 5px rgba(94, 234, 212, 0.12),
     0 0 18px rgba(94, 234, 212, 0.48);
   opacity: 0.88;
+}
+
+.mascot-speech-enter-active,
+.mascot-speech-leave-active {
+  transition:
+    opacity 0.24s ease,
+    transform 0.24s cubic-bezier(0.22, 1, 0.36, 1),
+    filter 0.24s ease;
+}
+
+.mascot-speech-enter-from,
+.mascot-speech-leave-to {
+  opacity: 0;
+  filter: blur(5px);
+  transform: translate(8px, 8px) scale(0.96);
 }
 
 @keyframes mascot-breathe {
@@ -399,25 +535,39 @@ onBeforeUnmount(() => {
 
 @media (max-width: 640px) {
   .live2d-support {
-    width: 88px;
-    min-height: 96px;
+    width: 92px;
+    min-height: 108px;
+    transform: translateX(-2px);
   }
 
   .mascot-stage {
-    width: 78px;
-    height: 82px;
+    width: 86px;
+    height: 98px;
   }
 
   .mascot-figure {
-    width: 86px;
-    height: 104px;
-    transform: translateY(-8px);
+    width: 96px;
+    height: 116px;
+    transform: translateY(-5px);
   }
 
   .mascot-aura,
   .mascot-orbit {
-    inset: auto 4px 5px;
-    height: 50px;
+    inset: auto 4px 7px;
+    height: 56px;
+  }
+
+  .mascot-speech {
+    right: 72px;
+    bottom: 75px;
+    max-width: min(190px, calc(100vw - 112px));
+    padding: 8px 10px;
+    font-size: 12px;
+    line-height: 1.45;
+  }
+
+  .mascot-speech::after {
+    bottom: 13px;
   }
 }
 
@@ -431,7 +581,8 @@ onBeforeUnmount(() => {
   .pupil,
   .spark,
   .headset,
-  .arms {
+  .arms,
+  .mascot-speech {
     transition-duration: 0.01ms;
   }
 }

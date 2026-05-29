@@ -23,6 +23,10 @@ const props = defineProps<{
   active: boolean
   label: string
   modelPath: string
+  messages?: string[]
+  speechInitialDelayMs?: number
+  speechIntervalMs?: number
+  speechDisplayMs?: number
 }>()
 
 const emit = defineEmits<{

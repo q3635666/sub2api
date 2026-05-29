@@ -975,7 +975,8 @@ onBeforeUnmount(() => {
   --glass-shadow: rgba(15, 23, 42, 0.09);
   position: relative;
   min-height: 100vh;
-  overflow: visible;
+  overflow-x: clip;
+  overflow-y: visible;
   background: transparent;
   color: var(--ink);
   isolation: isolate;
