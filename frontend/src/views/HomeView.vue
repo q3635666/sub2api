@@ -15,7 +15,10 @@
     v-else
     ref="homeRoot"
     class="home-page"
-    :class="{ 'is-pointer-active': pointerActive, 'is-theme-switching': isThemeSwitching }"
+    :class="{
+      'is-pointer-active': pointerActive,
+      'is-theme-switching': isThemeSwitching
+    }"
     :style="pointerStyle"
     @pointermove="handlePointerMove"
     @pointerleave="resetPointer"
