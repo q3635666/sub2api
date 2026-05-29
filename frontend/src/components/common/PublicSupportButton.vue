@@ -65,8 +65,8 @@
 
     <component
       :is="activeMascotComponent"
-      v-if="mascotEnabled"
-      v-show="mascotVisible"
+      v-if="shouldMountMascot"
+      :visible="mascotVisible"
       :active="isOpen"
       :label="t('support.trigger')"
       :model-path="supportMascotConfig.live2dModelPath"
@@ -136,6 +136,7 @@ const mascotEnabled = computed(() =>
   supportMascotConfig.renderer === 'builtin' ||
   (supportMascotConfig.renderer === 'live2d' && Boolean(supportMascotConfig.live2dModelPath))
 )
+const shouldMountMascot = computed(() => mascotEnabled.value && !mascotFailed.value)
 const activeMascotComponent = computed(() =>
   supportMascotConfig.renderer === 'live2d' ? SupportLive2DWidget : SupportLive2DMascot
 )

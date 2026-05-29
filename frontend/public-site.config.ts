@@ -273,6 +273,8 @@ export const publicSiteConfig: PublicSiteConfig = {
   supportMascot: {
     renderer: 'builtin',
     live2dModelPath: '',
+    // renderer: 'live2d',
+    // live2dModelPath: 'https://model.oml2d.com/HK416-1-normal/model.json',
     loadDelayMs: 450,
     timeoutMs: 3200,
     speechInitialDelayMs: 900,
@@ -289,7 +291,7 @@ export const publicSiteConfig: PublicSiteConfig = {
 
   home: {
     githubUrl: 'https://github.com/Wei-Shaw/sub2api',
-    brandEchoText: '121 API',
+    brandEchoText: '121API',
     pointerStyle: {
       '--pointer-x': '50%',
       '--pointer-y': '42%'
