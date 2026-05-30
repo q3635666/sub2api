@@ -7,9 +7,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
-import InteractiveRouteBackgroundCanvas from './InteractiveRouteBackgroundCanvas.vue'
-import InteractiveRouteBackgroundThree from './InteractiveRouteBackgroundThree.vue'
+import { defineAsyncComponent } from 'vue'
 import { publicSiteConfig } from '../../../public-site.config'
 
 const props = withDefaults(defineProps<{
@@ -19,9 +17,10 @@ const props = withDefaults(defineProps<{
   subtle: false
 })
 
-const activeComponent = computed(() =>
-  publicSiteConfig.background.renderer === 'canvas' ? InteractiveRouteBackgroundCanvas : InteractiveRouteBackgroundThree
-)
+const activeComponent =
+  publicSiteConfig.background.renderer === 'canvas'
+    ? defineAsyncComponent(() => import('./InteractiveRouteBackgroundCanvas.vue'))
+    : defineAsyncComponent(() => import('./InteractiveRouteBackgroundThree.vue'))
 
 void props
 </script>

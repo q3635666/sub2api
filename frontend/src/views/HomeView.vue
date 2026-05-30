@@ -4863,6 +4863,10 @@ onBeforeUnmount(() => {
   contain: layout paint style;
 }
 
+.home-nav {
+  contain: layout style;
+}
+
 .feature-card,
 .flow-panel,
 .trust-card,

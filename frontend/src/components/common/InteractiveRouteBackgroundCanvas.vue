@@ -98,8 +98,12 @@ let particles: Particle[] = []
 let lanes: Lane[] = []
 let burstTimer = 0
 let settleTimer = 0
+let pointerFrame = 0
+let pendingPointerX = 0.5
+let pendingPointerY = 0.42
 let burstDuration = 520
 let mounted = false
+let pageVisible = true
 let reducedMotion = false
 
 const pointer = {
@@ -205,15 +209,30 @@ function resize() {
 }
 
 function handlePointerMove(event: PointerEvent) {
-  pointer.tx = Math.min(1, Math.max(0, event.clientX / Math.max(width, 1)))
-  pointer.ty = Math.min(1, Math.max(0, event.clientY / Math.max(height, 1)))
+  pendingPointerX = Math.min(1, Math.max(0, event.clientX / Math.max(width, 1)))
+  pendingPointerY = Math.min(1, Math.max(0, event.clientY / Math.max(height, 1)))
+  if (!pointerFrame) {
+    pointerFrame = window.requestAnimationFrame(applyPointerMove)
+  }
+}
+
+function applyPointerMove() {
+  pointerFrame = 0
+  pointer.tx = pendingPointerX
+  pointer.ty = pendingPointerY
   pointer.active = true
 }
 
 function handlePointerLeave() {
+  if (pointerFrame) {
+    window.cancelAnimationFrame(pointerFrame)
+    pointerFrame = 0
+  }
   pointer.active = false
   pointer.tx = 0.5
   pointer.ty = 0.42
+  pendingPointerX = pointer.tx
+  pendingPointerY = pointer.ty
 }
 
 function triggerThemeBurst() {
@@ -591,7 +610,12 @@ function drawBottomSignal(context: CanvasRenderingContext2D) {
 }
 
 function render(now = 0) {
-  if (!ctx) return
+  if (!ctx || !mounted || !pageVisible) {
+    frameId = 0
+    return
+  }
+
+  frameId = 0
 
   const delta = lastFrame ? Math.min(42, now - lastFrame) : 16
   lastFrame = now
@@ -614,7 +638,29 @@ function render(now = 0) {
     drawBottomSignal(ctx)
   }
 
+  if (mounted && pageVisible) {
+    frameId = window.requestAnimationFrame(render)
+  }
+}
+
+function startRendering() {
+  if (!mounted || !pageVisible || !ctx || frameId) return
+  lastFrame = 0
   frameId = window.requestAnimationFrame(render)
+}
+
+function stopRendering() {
+  if (frameId) {
+    window.cancelAnimationFrame(frameId)
+    frameId = 0
+  }
+  lastFrame = 0
+}
+
+function handleVisibilityChange() {
+  pageVisible = !document.hidden
+  if (pageVisible) startRendering()
+  else stopRendering()
 }
 
 watch(
@@ -626,23 +672,30 @@ watch(
 
 onMounted(() => {
   mounted = true
+  pageVisible = !document.hidden
   reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
   resize()
   window.addEventListener('resize', resize)
   window.addEventListener('pointermove', handlePointerMove, { passive: true })
   document.addEventListener('mouseleave', handlePointerLeave)
+  document.addEventListener('visibilitychange', handleVisibilityChange)
   window.addEventListener('blur', handlePointerLeave)
-  frameId = window.requestAnimationFrame(render)
+  startRendering()
 })
 
 onBeforeUnmount(() => {
   mounted = false
-  window.cancelAnimationFrame(frameId)
+  stopRendering()
   window.clearTimeout(burstTimer)
   window.clearTimeout(settleTimer)
+  if (pointerFrame) {
+    window.cancelAnimationFrame(pointerFrame)
+    pointerFrame = 0
+  }
   window.removeEventListener('resize', resize)
   window.removeEventListener('pointermove', handlePointerMove)
   document.removeEventListener('mouseleave', handlePointerLeave)
+  document.removeEventListener('visibilitychange', handleVisibilityChange)
   window.removeEventListener('blur', handlePointerLeave)
 })
 </script>

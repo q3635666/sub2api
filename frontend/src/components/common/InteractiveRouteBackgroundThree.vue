@@ -92,9 +92,13 @@ let particlePoints: THREE.Points<THREE.BufferGeometry, THREE.ShaderMaterial> | n
 let frameId = 0
 let frameTimer = 0
 let resizeFrame = 0
+let resizeRebuildTimer = 0
 let burstTimer = 0
 let settleTimer = 0
 let pointerIdleTimer = 0
+let pointerFrame = 0
+let pendingPointerX = 0.5
+let pendingPointerY = 0.42
 let boostUntil = 0
 let burstDuration = 560
 let width = 1
@@ -102,6 +106,7 @@ let height = 1
 let dpr = 1
 let lastFrame = 0
 let themeMix = props.isDark ? 1 : 0
+let currentParticleCount = 0
 let mounted = false
 let pageVisible = true
 let reducedMotion = false
@@ -393,6 +398,11 @@ function canUseWebGL() {
   }
 }
 
+function getParticleCount() {
+  const baseCount = Math.round((width * height) / 2500)
+  return Math.round(Math.min(820, Math.max(360, baseCount)) * (props.subtle ? 0.72 : 1))
+}
+
 function createUniforms(): BackgroundUniforms {
   return {
     uTime: { value: 0 },
@@ -419,6 +429,7 @@ function disposeParticles() {
   particlePoints.material.dispose()
   particlePoints = null
   particleMaterial = null
+  currentParticleCount = 0
 }
 
 function buildParticles() {
@@ -426,8 +437,7 @@ function buildParticles() {
 
   disposeParticles()
 
-  const baseCount = Math.round((width * height) / 2500)
-  const count = Math.round(Math.min(820, Math.max(360, baseCount)) * (props.subtle ? 0.72 : 1))
+  const count = getParticleCount()
   const positions = new Float32Array(count * 3)
   const seeds = new Float32Array(count)
   const sizes = new Float32Array(count)
@@ -466,6 +476,7 @@ function buildParticles() {
   particlePoints = new THREE.Points(geometry, particleMaterial)
   particlePoints.frustumCulled = false
   scene.add(particlePoints)
+  currentParticleCount = count
 }
 
 function initThree() {
@@ -517,8 +528,23 @@ function resize() {
   if (uniforms) {
     uniforms.uPixelRatio.value = dpr
   }
-  buildParticles()
+  scheduleParticleRebuild()
   boostRender(900)
+}
+
+function scheduleParticleRebuild() {
+  if (resizeRebuildTimer) {
+    window.clearTimeout(resizeRebuildTimer)
+  }
+
+  resizeRebuildTimer = window.setTimeout(() => {
+    resizeRebuildTimer = 0
+    if (!mounted || !renderer || !scene || !uniforms) return
+    if (getParticleCount() !== currentParticleCount) {
+      buildParticles()
+      boostRender(500)
+    }
+  }, 180)
 }
 
 function scheduleResize() {
@@ -529,9 +555,10 @@ function scheduleResize() {
   })
 }
 
-function handlePointerMove(event: PointerEvent) {
-  pointer.tx = Math.min(1, Math.max(0, event.clientX / Math.max(width, 1)))
-  pointer.ty = Math.min(1, Math.max(0, event.clientY / Math.max(height, 1)))
+function applyPointerMove() {
+  pointerFrame = 0
+  pointer.tx = pendingPointerX
+  pointer.ty = pendingPointerY
   pointer.active = true
   boostRender(1000)
 
@@ -542,11 +569,25 @@ function handlePointerMove(event: PointerEvent) {
   }, 820)
 }
 
+function handlePointerMove(event: PointerEvent) {
+  pendingPointerX = Math.min(1, Math.max(0, event.clientX / Math.max(width, 1)))
+  pendingPointerY = Math.min(1, Math.max(0, event.clientY / Math.max(height, 1)))
+  if (!pointerFrame) {
+    pointerFrame = window.requestAnimationFrame(applyPointerMove)
+  }
+}
+
 function handlePointerLeave() {
   window.clearTimeout(pointerIdleTimer)
+  if (pointerFrame) {
+    window.cancelAnimationFrame(pointerFrame)
+    pointerFrame = 0
+  }
   pointer.active = false
   pointer.tx = 0.5
   pointer.ty = 0.42
+  pendingPointerX = pointer.tx
+  pendingPointerY = pointer.ty
   boostRender(800)
 }
 
@@ -702,6 +743,14 @@ onBeforeUnmount(() => {
   if (resizeFrame) {
     window.cancelAnimationFrame(resizeFrame)
     resizeFrame = 0
+  }
+  if (resizeRebuildTimer) {
+    window.clearTimeout(resizeRebuildTimer)
+    resizeRebuildTimer = 0
+  }
+  if (pointerFrame) {
+    window.cancelAnimationFrame(pointerFrame)
+    pointerFrame = 0
   }
   window.removeEventListener('resize', scheduleResize)
   window.removeEventListener('pointermove', handlePointerMove)
