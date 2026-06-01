@@ -521,6 +521,7 @@ export default {
     mySubscriptions: '我的订阅',
     buySubscription: '充值/订阅',
     docs: '文档',
+    webImageGenerator: '网页生图',
     tutorialDocs: '教程文档',
     myOrders: '我的订单',
     orderManagement: '订单管理',

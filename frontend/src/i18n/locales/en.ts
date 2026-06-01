@@ -521,6 +521,7 @@ export default {
     mySubscriptions: 'My Subscriptions',
     buySubscription: 'Recharge / Subscription',
     docs: 'Docs',
+    webImageGenerator: 'Web Image Generator',
     tutorialDocs: 'Tutorial Docs',
     myOrders: 'My Orders',
     orderManagement: 'Orders',
